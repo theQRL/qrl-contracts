@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (utils/StorageSlot.hyp)
+// QRL Contracts (last updated v0.1.0) (utils/StorageSlot.hyp)
 // This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
 
 pragma hyperion >=0.0;

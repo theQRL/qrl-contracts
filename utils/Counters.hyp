@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts v0.1.0 (utils/Counters.hyp)
+// QRL Contracts v0.1.0 (utils/Counters.hyp)
 
 pragma hyperion >=0.0;
 
