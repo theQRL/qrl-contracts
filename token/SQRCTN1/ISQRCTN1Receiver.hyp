@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC721/IZRC721Receiver.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTN1/ISQRCTN1Receiver.hyp)
 
 pragma hyperion >=0.0;
 
 /**
- * @title ZRC-721 token receiver interface
+ * @title SQRC-TN1 token receiver interface
  * @dev Interface for any contract that wants to support safeTransfers
- * from ZRC-721 asset contracts.
+ * from SQRC-TN1 asset contracts.
  */
-interface IZRC721Receiver {
+interface ISQRCTN1Receiver {
     /**
-     * @dev Whenever an {IZRC721} `tokenId` token is transferred to this contract via {IZRC721-safeTransferFrom}
+     * @dev Whenever an {ISQRCTN1} `tokenId` token is transferred to this contract via {ISQRCTN1-safeTransferFrom}
      * by `operator` from `from`, this function is called.
      *
      * It must return its Hyperion selector to confirm the token transfer.
      * If any other value is returned or the interface is not implemented by the recipient, the transfer will be
      * reverted.
      *
-     * The selector can be obtained in Hyperion with `IZRC721Receiver.onZRC721Received.selector`.
+     * The selector can be obtained in Hyperion with `ISQRCTN1Receiver.onSQRCTN1Received.selector`.
      */
-    function onZRC721Received(
+    function onSQRCTN1Received(
         address operator,
         address from,
         uint256 tokenId,

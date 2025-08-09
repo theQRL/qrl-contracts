@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC20/extensions/IZRC20Metadata.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTF1/extensions/ISQRCTF1Metadata.hyp)
 
 pragma hyperion >=0.0;
 
-import {IZRC20} from "../IZRC20.hyp";
+import {ISQRCTF1} from "../ISQRCTF1.hyp";
 
 /**
- * @dev Interface for the optional metadata functions from the ZRC-20 standard.
+ * @dev Interface for the optional metadata functions from the SQRC-TF1 standard.
  */
-interface IZRC20Metadata is IZRC20 {
+interface ISQRCTF1Metadata is ISQRCTF1 {
     /**
      * @dev Returns the name of the token.
      */

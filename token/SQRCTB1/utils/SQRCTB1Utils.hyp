@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC1155/utils/ZRC1155Utils.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTB1/utils/SQRCTB1Utils.hyp)
 
 pragma hyperion >=0.0;
 
-import {IZRC1155Receiver} from "../IZRC1155Receiver.hyp";
-import {IZRC1155Errors} from "../../../interfaces/draft-IZRC6093.hyp";
+import {ISQRCTB1Receiver} from "../ISQRCTB1Receiver.hyp";
+import {ISQRCTB1Errors} from "../../../interfaces/draft-IZRC6093.hyp";
 
 /**
- * @dev Library that provide common ZRC-1155 utility functions.
+ * @dev Library that provide common SQRC-TB1 utility functions.
  *
- * See https://eips.ethereum.org/EIPS/eip-1155[ZRC-1155].
+ * See https://eips.ethereum.org/EIPS/eip-1155[SQRC-TB1].
  *
  * _Available since v5.1._
  */
-library ZRC1155Utils {
+library SQRCTB1Utils {
     /**
-     * @dev Performs an acceptance check for the provided `operator` by calling {IZRC1155Receiver-onZRC1155Received}
+     * @dev Performs an acceptance check for the provided `operator` by calling {ISQRCTB1Receiver-onSQRCTB1Received}
      * on the `to` address. The `operator` is generally the address that initiated the token transfer (i.e. `msg.sender`).
      *
      * The acceptance call is not executed and treated as a no-op if the target address doesn't contain code (i.e. an EOA).
-     * Otherwise, the recipient must implement {IZRC1155Receiver-onZRC1155Received} and return the acceptance magic value to accept
+     * Otherwise, the recipient must implement {ISQRCTB1Receiver-onSQRCTB1Received} and return the acceptance magic value to accept
      * the transfer.
      */
-    function checkOnZRC1155Received(
+    function checkOnSQRCTB1Received(
         address operator,
         address from,
         address to,
@@ -31,15 +31,15 @@ library ZRC1155Utils {
         bytes memory data
     ) internal {
         if (to.code.length > 0) {
-            try IZRC1155Receiver(to).onZRC1155Received(operator, from, id, value, data) returns (bytes4 response) {
-                if (response != IZRC1155Receiver.onZRC1155Received.selector) {
+            try ISQRCTB1Receiver(to).onSQRCTB1Received(operator, from, id, value, data) returns (bytes4 response) {
+                if (response != ISQRCTB1Receiver.onSQRCTB1Received.selector) {
                     // Tokens rejected
-                    revert IZRC1155Errors.ZRC1155InvalidReceiver(to);
+                    revert ISQRCTB1Errors.SQRCTB1InvalidReceiver(to);
                 }
             } catch (bytes memory reason) {
                 if (reason.length == 0) {
-                    // non-IZRC1155Receiver implementer
-                    revert IZRC1155Errors.ZRC1155InvalidReceiver(to);
+                    // non-ISQRCTB1Receiver implementer
+                    revert ISQRCTB1Errors.SQRCTB1InvalidReceiver(to);
                 } else {
                     assembly ("memory-safe") {
                         revert(add(32, reason), mload(reason))
@@ -50,14 +50,14 @@ library ZRC1155Utils {
     }
 
     /**
-     * @dev Performs a batch acceptance check for the provided `operator` by calling {IZRC1155Receiver-onZRC1155BatchReceived}
+     * @dev Performs a batch acceptance check for the provided `operator` by calling {ISQRCTB1Receiver-onSQRCTB1BatchReceived}
      * on the `to` address. The `operator` is generally the address that initiated the token transfer (i.e. `msg.sender`).
      *
      * The acceptance call is not executed and treated as a no-op if the target address doesn't contain code (i.e. an EOA).
-     * Otherwise, the recipient must implement {IZRC1155Receiver-onZRC1155Received} and return the acceptance magic value to accept
+     * Otherwise, the recipient must implement {ISQRCTB1Receiver-onSQRCTB1Received} and return the acceptance magic value to accept
      * the transfer.
      */
-    function checkOnZRC1155BatchReceived(
+    function checkOnSQRCTB1BatchReceived(
         address operator,
         address from,
         address to,
@@ -66,17 +66,17 @@ library ZRC1155Utils {
         bytes memory data
     ) internal {
         if (to.code.length > 0) {
-            try IZRC1155Receiver(to).onZRC1155BatchReceived(operator, from, ids, values, data) returns (
+            try ISQRCTB1Receiver(to).onSQRCTB1BatchReceived(operator, from, ids, values, data) returns (
                 bytes4 response
             ) {
-                if (response != IZRC1155Receiver.onZRC1155BatchReceived.selector) {
+                if (response != ISQRCTB1Receiver.onSQRCTB1BatchReceived.selector) {
                     // Tokens rejected
-                    revert IZRC1155Errors.ZRC1155InvalidReceiver(to);
+                    revert ISQRCTB1Errors.SQRCTB1InvalidReceiver(to);
                 }
             } catch (bytes memory reason) {
                 if (reason.length == 0) {
-                    // non-IZRC1155Receiver implementer
-                    revert IZRC1155Errors.ZRC1155InvalidReceiver(to);
+                    // non-ISQRCTB1Receiver implementer
+                    revert ISQRCTB1Errors.SQRCTB1InvalidReceiver(to);
                 } else {
                     assembly ("memory-safe") {
                         revert(add(32, reason), mload(reason))

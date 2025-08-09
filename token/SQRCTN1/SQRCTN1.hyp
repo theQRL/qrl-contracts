@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC721/ZRC721.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTN1/SQRCTN1.hyp)
 
 pragma hyperion >=0.0;
 
-import {IZRC721} from "./IZRC721.hyp";
-import {IZRC721Metadata} from "./extensions/IZRC721Metadata.hyp";
-import {ZRC721Utils} from "./utils/ZRC721Utils.hyp";
+import {ISQRCTN1} from "./ISQRCTN1.hyp";
+import {ISQRCTN1Metadata} from "./extensions/ISQRCTN1Metadata.hyp";
+import {SQRCTN1Utils} from "./utils/SQRCTN1Utils.hyp";
 import {Context} from "../../utils/Context.hyp";
 import {Strings} from "../../utils/Strings.hyp";
 import {IZRC165, ZRC165} from "../../utils/introspection/ZRC165.hyp";
-import {IZRC721Errors} from "../../interfaces/draft-IZRC6093.hyp";
+import {ISQRCTN1Errors} from "../../interfaces/draft-IZRC6093.hyp";
 
 /**
- * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ZRC-721] Non-Fungible Token Standard, including
+ * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[SQRC-TN1] Non-Fungible Token Standard, including
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
- * {ZRC721Enumerable}.
+ * {SQRCTN1Enumerable}.
  */
-abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Errors {
+abstract contract SQRCTN1 is Context, ZRC165, ISQRCTN1, ISQRCTN1Metadata, ISQRCTN1Errors {
     using Strings for uint256;
 
     // Token name
@@ -44,35 +44,35 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
     /// @inheritdoc IZRC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(ZRC165, IZRC165) returns (bool) {
         return
-            interfaceId == type(IZRC721).interfaceId ||
-            interfaceId == type(IZRC721Metadata).interfaceId ||
+            interfaceId == type(ISQRCTN1).interfaceId ||
+            interfaceId == type(ISQRCTN1Metadata).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function balanceOf(address owner) public view virtual returns (uint256) {
         if (owner == address(0)) {
-            revert ZRC721InvalidOwner(address(0));
+            revert SQRCTN1InvalidOwner(address(0));
         }
         return _balances[owner];
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function ownerOf(uint256 tokenId) public view virtual returns (address) {
         return _requireOwned(tokenId);
     }
 
-    /// @inheritdoc IZRC721Metadata
+    /// @inheritdoc ISQRCTN1Metadata
     function name() public view virtual returns (string memory) {
         return _name;
     }
 
-    /// @inheritdoc IZRC721Metadata
+    /// @inheritdoc ISQRCTN1Metadata
     function symbol() public view virtual returns (string memory) {
         return _symbol;
     }
 
-    /// @inheritdoc IZRC721Metadata
+    /// @inheritdoc ISQRCTN1Metadata
     function tokenURI(uint256 tokenId) public view virtual returns (string memory) {
         _requireOwned(tokenId);
 
@@ -89,57 +89,57 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
         return "";
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function approve(address to, uint256 tokenId) public virtual {
         _approve(to, tokenId, _msgSender());
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function getApproved(uint256 tokenId) public view virtual returns (address) {
         _requireOwned(tokenId);
 
         return _getApproved(tokenId);
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function setApprovalForAll(address operator, bool approved) public virtual {
         _setApprovalForAll(_msgSender(), operator, approved);
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
         return _operatorApprovals[owner][operator];
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function transferFrom(address from, address to, uint256 tokenId) public virtual {
         if (to == address(0)) {
-            revert ZRC721InvalidReceiver(address(0));
+            revert SQRCTN1InvalidReceiver(address(0));
         }
         // Setting an "auth" arguments enables the `_isAuthorized` check which verifies that the token exists
         // (from != 0). Therefore, it is not needed to verify that the return value is not 0 here.
         address previousOwner = _update(to, tokenId, _msgSender());
         if (previousOwner != from) {
-            revert ZRC721IncorrectOwner(from, tokenId, previousOwner);
+            revert SQRCTN1IncorrectOwner(from, tokenId, previousOwner);
         }
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function safeTransferFrom(address from, address to, uint256 tokenId) public {
         safeTransferFrom(from, to, tokenId, "");
     }
 
-    /// @inheritdoc IZRC721
+    /// @inheritdoc ISQRCTN1
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public virtual {
         transferFrom(from, to, tokenId);
-        ZRC721Utils.checkOnZRC721Received(_msgSender(), from, to, tokenId, data);
+        SQRCTN1Utils.checkOnSQRCTN1Received(_msgSender(), from, to, tokenId, data);
     }
 
     /**
      * @dev Returns the owner of the `tokenId`. Does NOT revert if token doesn't exist
      *
      * IMPORTANT: Any overrides to this function that add ownership of tokens not tracked by the
-     * core ZRC-721 logic MUST be matched with the use of {_increaseBalance} to keep balances
+     * core SQRC-TN1 logic MUST be matched with the use of {_increaseBalance} to keep balances
      * consistent with ownership. The invariant to preserve is that for any address `a` the value returned by
      * `balanceOf(a)` must be equal to the number of tokens such that `_ownerOf(tokenId)` is `a`.
      */
@@ -179,9 +179,9 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
     function _checkAuthorized(address owner, address spender, uint256 tokenId) internal view virtual {
         if (!_isAuthorized(owner, spender, tokenId)) {
             if (owner == address(0)) {
-                revert ZRC721NonexistentToken(tokenId);
+                revert SQRCTN1NonexistentToken(tokenId);
             } else {
-                revert ZRC721InsufficientApproval(spender, tokenId);
+                revert SQRCTN1InsufficientApproval(spender, tokenId);
             }
         }
     }
@@ -258,11 +258,11 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
      */
     function _mint(address to, uint256 tokenId) internal {
         if (to == address(0)) {
-            revert ZRC721InvalidReceiver(address(0));
+            revert SQRCTN1InvalidReceiver(address(0));
         }
         address previousOwner = _update(to, tokenId, address(0));
         if (previousOwner != address(0)) {
-            revert ZRC721InvalidSender(address(0));
+            revert SQRCTN1InvalidSender(address(0));
         }
     }
 
@@ -272,7 +272,7 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
      * Requirements:
      *
      * - `tokenId` must not exist.
-     * - If `to` refers to a smart contract, it must implement {IZRC721Receiver-onZRC721Received}, which is called upon a safe transfer.
+     * - If `to` refers to a smart contract, it must implement {ISQRCTN1Receiver-onSQRCTN1Received}, which is called upon a safe transfer.
      *
      * Emits a {Transfer} event.
      */
@@ -281,12 +281,12 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
     }
 
     /**
-     * @dev Same as {xref-ZRC721-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
-     * forwarded in {IZRC721Receiver-onZRC721Received} to contract recipients.
+     * @dev Same as {xref-SQRCTN1-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
+     * forwarded in {ISQRCTN1Receiver-onSQRCTN1Received} to contract recipients.
      */
     function _safeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
         _mint(to, tokenId);
-        ZRC721Utils.checkOnZRC721Received(_msgSender(), address(0), to, tokenId, data);
+        SQRCTN1Utils.checkOnSQRCTN1Received(_msgSender(), address(0), to, tokenId, data);
     }
 
     /**
@@ -303,7 +303,7 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
     function _burn(uint256 tokenId) internal {
         address previousOwner = _update(address(0), tokenId, address(0));
         if (previousOwner == address(0)) {
-            revert ZRC721NonexistentToken(tokenId);
+            revert SQRCTN1NonexistentToken(tokenId);
         }
     }
 
@@ -320,24 +320,24 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
      */
     function _transfer(address from, address to, uint256 tokenId) internal {
         if (to == address(0)) {
-            revert ZRC721InvalidReceiver(address(0));
+            revert SQRCTN1InvalidReceiver(address(0));
         }
         address previousOwner = _update(to, tokenId, address(0));
         if (previousOwner == address(0)) {
-            revert ZRC721NonexistentToken(tokenId);
+            revert SQRCTN1NonexistentToken(tokenId);
         } else if (previousOwner != from) {
-            revert ZRC721IncorrectOwner(from, tokenId, previousOwner);
+            revert SQRCTN1IncorrectOwner(from, tokenId, previousOwner);
         }
     }
 
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking that contract recipients
-     * are aware of the ZRC-721 standard to prevent tokens from being forever locked.
+     * are aware of the SQRC-TN1 standard to prevent tokens from being forever locked.
      *
      * `data` is additional data, it has no specified format and it is sent in call to `to`.
      *
      * This internal function is like {safeTransferFrom} in the sense that it invokes
-     * {IZRC721Receiver-onZRC721Received} on the receiver, and can be used to e.g.
+     * {ISQRCTN1Receiver-onSQRCTN1Received} on the receiver, and can be used to e.g.
      * implement alternative mechanisms to perform token transfer, such as signature-based.
      *
      * Requirements:
@@ -345,7 +345,7 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
      * - `tokenId` token must exist and be owned by `from`.
      * - `to` cannot be the zero address.
      * - `from` cannot be the zero address.
-     * - If `to` refers to a smart contract, it must implement {IZRC721Receiver-onZRC721Received}, which is called upon a safe transfer.
+     * - If `to` refers to a smart contract, it must implement {ISQRCTN1Receiver-onSQRCTN1Received}, which is called upon a safe transfer.
      *
      * Emits a {Transfer} event.
      */
@@ -354,12 +354,12 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
     }
 
     /**
-     * @dev Same as {xref-ZRC721-_safeTransfer-address-address-uint256-}[`_safeTransfer`], with an additional `data` parameter which is
-     * forwarded in {IZRC721Receiver-onZRC721Received} to contract recipients.
+     * @dev Same as {xref-SQRCTN1-_safeTransfer-address-address-uint256-}[`_safeTransfer`], with an additional `data` parameter which is
+     * forwarded in {ISQRCTN1Receiver-onSQRCTN1Received} to contract recipients.
      */
     function _safeTransfer(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
         _transfer(from, to, tokenId);
-        ZRC721Utils.checkOnZRC721Received(_msgSender(), from, to, tokenId, data);
+        SQRCTN1Utils.checkOnSQRCTN1Received(_msgSender(), from, to, tokenId, data);
     }
 
     /**
@@ -387,7 +387,7 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
 
             // We do not use _isAuthorized because single-token approvals should not be able to call approve
             if (auth != address(0) && owner != auth && !isApprovedForAll(owner, auth)) {
-                revert ZRC721InvalidApprover(auth);
+                revert SQRCTN1InvalidApprover(auth);
             }
 
             if (emitEvent) {
@@ -408,7 +408,7 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
      */
     function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
         if (operator == address(0)) {
-            revert ZRC721InvalidOperator(operator);
+            revert SQRCTN1InvalidOperator(operator);
         }
         _operatorApprovals[owner][operator] = approved;
         emit ApprovalForAll(owner, operator, approved);
@@ -423,7 +423,7 @@ abstract contract ZRC721 is Context, ZRC165, IZRC721, IZRC721Metadata, IZRC721Er
     function _requireOwned(uint256 tokenId) internal view returns (address) {
         address owner = _ownerOf(tokenId);
         if (owner == address(0)) {
-            revert ZRC721NonexistentToken(tokenId);
+            revert SQRCTN1NonexistentToken(tokenId);
         }
         return owner;
     }

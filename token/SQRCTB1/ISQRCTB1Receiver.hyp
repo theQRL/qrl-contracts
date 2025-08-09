@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC1155/IZRC1155Receiver.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTB1/ISQRCTB1Receiver.hyp)
 
 pragma hyperion >=0.0;
 
@@ -7,15 +7,15 @@ import {IZRC165} from "../../utils/introspection/IZRC165.hyp";
 
 /**
  * @dev Interface that must be implemented by smart contracts in order to receive
- * ZRC-1155 token transfers.
+ * SQRC-TB1 token transfers.
  */
-interface IZRC1155Receiver is IZRC165 {
+interface ISQRCTB1Receiver is IZRC165 {
     /**
-     * @dev Handles the receipt of a single ZRC-1155 token type. This function is
+     * @dev Handles the receipt of a single SQRC-TB1 token type. This function is
      * called at the end of a `safeTransferFrom` after the balance has been updated.
      *
      * NOTE: To accept the transfer, this must return
-     * `bytes4(keccak256("onZRC1155Received(address,address,uint256,uint256,bytes)"))`
+     * `bytes4(keccak256("onSQRCTB1Received(address,address,uint256,uint256,bytes)"))`
      * (i.e. 0xf23a6e61, or its own function selector).
      *
      * @param operator The address which initiated the transfer (i.e. msg.sender)
@@ -23,9 +23,9 @@ interface IZRC1155Receiver is IZRC165 {
      * @param id The ID of the token being transferred
      * @param value The amount of tokens being transferred
      * @param data Additional data with no specified format
-     * @return `bytes4(keccak256("onZRC1155Received(address,address,uint256,uint256,bytes)"))` if transfer is allowed
+     * @return `bytes4(keccak256("onSQRCTB1Received(address,address,uint256,uint256,bytes)"))` if transfer is allowed
      */
-    function onZRC1155Received(
+    function onSQRCTB1Received(
         address operator,
         address from,
         uint256 id,
@@ -34,12 +34,12 @@ interface IZRC1155Receiver is IZRC165 {
     ) external returns (bytes4);
 
     /**
-     * @dev Handles the receipt of a multiple ZRC-1155 token types. This function
+     * @dev Handles the receipt of a multiple SQRC-TB1 token types. This function
      * is called at the end of a `safeBatchTransferFrom` after the balances have
      * been updated.
      *
      * NOTE: To accept the transfer(s), this must return
-     * `bytes4(keccak256("onZRC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
+     * `bytes4(keccak256("onSQRCTB1BatchReceived(address,address,uint256[],uint256[],bytes)"))`
      * (i.e. 0xbc197c81, or its own function selector).
      *
      * @param operator The address which initiated the batch transfer (i.e. msg.sender)
@@ -47,9 +47,9 @@ interface IZRC1155Receiver is IZRC165 {
      * @param ids An array containing ids of each token being transferred (order and length must match values array)
      * @param values An array containing amounts of each token being transferred (order and length must match ids array)
      * @param data Additional data with no specified format
-     * @return `bytes4(keccak256("onZRC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))` if transfer is allowed
+     * @return `bytes4(keccak256("onSQRCTB1BatchReceived(address,address,uint256[],uint256[],bytes)"))` if transfer is allowed
      */
-    function onZRC1155BatchReceived(
+    function onSQRCTB1BatchReceived(
         address operator,
         address from,
         uint256[] calldata ids,

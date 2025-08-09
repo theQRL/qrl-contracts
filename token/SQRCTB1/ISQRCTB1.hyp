@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC1155/IZRC1155.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTB1/ISQRCTB1.hyp)
 
 pragma hyperion >=0.0;
 
 import {IZRC165} from "../../utils/introspection/IZRC165.hyp";
 
 /**
- * @dev Required interface of an ZRC-1155 compliant contract, as defined in the
+ * @dev Required interface of an SQRC-TB1 compliant contract, as defined in the
  * https://eips.ethereum.org/EIPS/eip-1155[ZRC].
  */
-interface IZRC1155 is IZRC165 {
+interface ISQRCTB1 is IZRC165 {
     /**
      * @dev Emitted when `value` amount of tokens of type `id` are transferred from `from` to `to` by `operator`.
      */
@@ -38,7 +38,7 @@ interface IZRC1155 is IZRC165 {
      *
      * If an {URI} event was emitted for `id`, the standard
      * https://eips.ethereum.org/EIPS/eip-1155#metadata-extensions[guarantees] that `value` will equal the value
-     * returned by {IZRC1155MetadataURI-uri}.
+     * returned by {ISQRCTB1MetadataURI-uri}.
      */
     event URI(string value, uint256 indexed id);
 
@@ -81,7 +81,7 @@ interface IZRC1155 is IZRC165 {
      * @dev Transfers a `value` amount of tokens of type `id` from `from` to `to`.
      *
      * WARNING: This function can potentially allow a reentrancy attack when transferring tokens
-     * to an untrusted contract, when invoking {IZRC1155Receiver-onZRC1155Received} on the receiver.
+     * to an untrusted contract, when invoking {ISQRCTB1Receiver-onSQRCTB1Received} on the receiver.
      * Ensure to follow the checks-effects-interactions pattern and consider employing
      * reentrancy guards when interacting with untrusted contracts.
      *
@@ -92,7 +92,7 @@ interface IZRC1155 is IZRC165 {
      * - `to` cannot be the zero address.
      * - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via {setApprovalForAll}.
      * - `from` must have a balance of tokens of type `id` of at least `value` amount.
-     * - If `to` refers to a smart contract, it must implement {IZRC1155Receiver-onZRC1155Received} and return the
+     * - If `to` refers to a smart contract, it must implement {ISQRCTB1Receiver-onSQRCTB1Received} and return the
      * acceptance magic value.
      */
     function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes calldata data) external;
@@ -101,7 +101,7 @@ interface IZRC1155 is IZRC165 {
      * @dev xref:ROOT:zrc1155.adoc#batch-operations[Batched] version of {safeTransferFrom}.
      *
      * WARNING: This function can potentially allow a reentrancy attack when transferring tokens
-     * to an untrusted contract, when invoking {IZRC1155Receiver-onZRC1155BatchReceived} on the receiver.
+     * to an untrusted contract, when invoking {ISQRCTB1Receiver-onSQRCTB1BatchReceived} on the receiver.
      * Ensure to follow the checks-effects-interactions pattern and consider employing
      * reentrancy guards when interacting with untrusted contracts.
      *
@@ -110,7 +110,7 @@ interface IZRC1155 is IZRC165 {
      * Requirements:
      *
      * - `ids` and `values` must have the same length.
-     * - If `to` refers to a smart contract, it must implement {IZRC1155Receiver-onZRC1155BatchReceived} and return the
+     * - If `to` refers to a smart contract, it must implement {ISQRCTB1Receiver-onSQRCTB1BatchReceived} and return the
      * acceptance magic value.
      */
     function safeBatchTransferFrom(

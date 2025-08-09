@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-// QRL Contracts (last updated v0.1.0) (token/ZRC721/IZRC721.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTN1/ISQRCTN1.hyp)
 
 pragma hyperion >=0.0;
 
 import {IZRC165} from "../../utils/introspection/IZRC165.hyp";
 
 /**
- * @dev Required interface of an ZRC-721 compliant contract.
+ * @dev Required interface of an SQRC-TN1 compliant contract.
  */
-interface IZRC721 is IZRC165 {
+interface ISQRCTN1 is IZRC165 {
     /**
      * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
      */
@@ -47,7 +47,7 @@ interface IZRC721 is IZRC165 {
      * - `to` cannot be the zero address.
      * - `tokenId` token must exist and be owned by `from`.
      * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
-     * - If `to` refers to a smart contract, it must implement {IZRC721Receiver-onZRC721Received}, which is called upon
+     * - If `to` refers to a smart contract, it must implement {ISQRCTN1Receiver-onSQRCTN1Received}, which is called upon
      *   a safe transfer.
      *
      * Emits a {Transfer} event.
@@ -56,7 +56,7 @@ interface IZRC721 is IZRC165 {
 
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ZRC-721 protocol to prevent tokens from being forever locked.
+     * are aware of the SQRC-TN1 protocol to prevent tokens from being forever locked.
      *
      * Requirements:
      *
@@ -65,7 +65,7 @@ interface IZRC721 is IZRC165 {
      * - `tokenId` token must exist and be owned by `from`.
      * - If the caller is not `from`, it must have been allowed to move this token by either {approve} or
      *   {setApprovalForAll}.
-     * - If `to` refers to a smart contract, it must implement {IZRC721Receiver-onZRC721Received}, which is called upon
+     * - If `to` refers to a smart contract, it must implement {ISQRCTN1Receiver-onSQRCTN1Received}, which is called upon
      *   a safe transfer.
      *
      * Emits a {Transfer} event.
@@ -75,7 +75,7 @@ interface IZRC721 is IZRC165 {
     /**
      * @dev Transfers `tokenId` token from `from` to `to`.
      *
-     * WARNING: Note that the caller is responsible to confirm that the recipient is capable of receiving ZRC-721
+     * WARNING: Note that the caller is responsible to confirm that the recipient is capable of receiving SQRC-TN1
      * or else they may be permanently lost. Usage of {safeTransferFrom} prevents loss, though the caller must
      * understand this adds an external call which potentially creates a reentrancy vulnerability.
      *
