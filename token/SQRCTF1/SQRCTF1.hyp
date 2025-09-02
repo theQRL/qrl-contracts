@@ -67,7 +67,7 @@ abstract contract SQRCTF1 is Context, ISQRCTF1, ISQRCTF1Metadata, ISQRCTF1Errors
      * be displayed to a user as `5.05` (`505 / 10 ** 2`).
      *
      * Tokens usually opt for a value of 18, imitating the relationship between
-     * QRL and Planck. This is the default value returned by this function, 
+     * Quanta and Planck. This is the default value returned by this function, 
      * unless it's overridden.
      *
      * NOTE: This information is only used for _display_ purposes: it in
