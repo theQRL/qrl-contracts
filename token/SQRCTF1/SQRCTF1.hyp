@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (token/ZRC20/ZRC20.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTF1/SQRCTF1.hyp)
 
 pragma hyperion >=0.0;
 
-import {IZRC20} from "./IZRC20.hyp";
-import {IZRC20Metadata} from "./extensions/IZRC20Metadata.hyp";
+import {ISQRCTF1} from "./ISQRCTF1.hyp";
+import {ISQRCTF1Metadata} from "./extensions/ISQRCTF1Metadata.hyp";
 import {Context} from "../../utils/Context.hyp";
-import {IZRC20Errors} from "../../interfaces/draft-IZRC6093.hyp";
+import {ISQRCTF1Errors} from "../../interfaces/draft-IZRC6093.hyp";
 
 /**
- * @dev Implementation of the {IZRC20} interface.
+ * @dev Implementation of the {ISQRCTF1} interface.
  *
  * This implementation is agnostic to the way tokens are created. This means
  * that a supply mechanism has to be added in a derived contract using {_mint}.
@@ -21,12 +21,12 @@ import {IZRC20Errors} from "../../interfaces/draft-IZRC6093.hyp";
  * The default value of {decimals} is 18. To change this, you should override
  * this function so it returns a different value.
  *
- * We have followed general Zond Contracts guidelines: functions revert
+ * We have followed general QRL Contracts guidelines: functions revert
  * instead returning `false` on failure. This behavior is nonetheless
- * conventional and does not conflict with the expectations of ZRC-20
+ * conventional and does not conflict with the expectations of SQRC-TF1
  * applications.
  */
-abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
+abstract contract SQRCTF1 is Context, ISQRCTF1, ISQRCTF1Metadata, ISQRCTF1Errors {
     mapping(address account => uint256) private _balances;
 
     mapping(address account => mapping(address spender => uint256)) private _allowances;
@@ -67,29 +67,29 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
      * be displayed to a user as `5.05` (`505 / 10 ** 2`).
      *
      * Tokens usually opt for a value of 18, imitating the relationship between
-     * Zond and Planck. This is the default value returned by this function, 
+     * Quanta and Planck. This is the default value returned by this function, 
      * unless it's overridden.
      *
      * NOTE: This information is only used for _display_ purposes: it in
      * no way affects any of the arithmetic of the contract, including
-     * {IZRC20-balanceOf} and {IZRC20-transfer}.
+     * {ISQRCTF1-balanceOf} and {ISQRCTF1-transfer}.
      */
     function decimals() public view virtual returns (uint8) {
         return 18;
     }
 
-    /// @inheritdoc IZRC20
+    /// @inheritdoc ISQRCTF1
     function totalSupply() public view virtual returns (uint256) {
         return _totalSupply;
     }
 
-    /// @inheritdoc IZRC20
+    /// @inheritdoc ISQRCTF1
     function balanceOf(address account) public view virtual returns (uint256) {
         return _balances[account];
     }
 
     /**
-     * @dev See {IZRC20-transfer}.
+     * @dev See {ISQRCTF1-transfer}.
      *
      * Requirements:
      *
@@ -102,13 +102,13 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
         return true;
     }
 
-    /// @inheritdoc IZRC20
+    /// @inheritdoc ISQRCTF1
     function allowance(address owner, address spender) public view virtual returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /**
-     * @dev See {IZRC20-approve}.
+     * @dev See {ISQRCTF1-approve}.
      *
      * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
      * `transferFrom`. This is semantically equivalent to an infinite approval.
@@ -124,10 +124,10 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
     }
 
     /**
-     * @dev See {IZRC20-transferFrom}.
+     * @dev See {ISQRCTF1-transferFrom}.
      *
      * Skips emitting an {Approval} event indicating an allowance update. This is not
-     * required by the ZRC. See {xref-ZRC20-_approve-address-address-uint256-bool-}[_approve].
+     * required by the ZRC. See {xref-SQRCTF1-_approve-address-address-uint256-bool-}[_approve].
      *
      * NOTE: Does not update the allowance if the current allowance
      * is the maximum `uint256`.
@@ -158,10 +158,10 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
      */
     function _transfer(address from, address to, uint256 value) internal {
         if (from == address(0)) {
-            revert ZRC20InvalidSender(address(0));
+            revert SQRCTF1InvalidSender(address(0));
         }
         if (to == address(0)) {
-            revert ZRC20InvalidReceiver(address(0));
+            revert SQRCTF1InvalidReceiver(address(0));
         }
         _update(from, to, value);
     }
@@ -180,7 +180,7 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
         } else {
             uint256 fromBalance = _balances[from];
             if (fromBalance < value) {
-                revert ZRC20InsufficientBalance(from, fromBalance, value);
+                revert SQRCTF1InsufficientBalance(from, fromBalance, value);
             }
             unchecked {
                 // Overflow not possible: value <= fromBalance <= totalSupply.
@@ -213,7 +213,7 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
      */
     function _mint(address account, uint256 value) internal {
         if (account == address(0)) {
-            revert ZRC20InvalidReceiver(address(0));
+            revert SQRCTF1InvalidReceiver(address(0));
         }
         _update(address(0), account, value);
     }
@@ -228,7 +228,7 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
      */
     function _burn(address account, uint256 value) internal {
         if (account == address(0)) {
-            revert ZRC20InvalidSender(address(0));
+            revert SQRCTF1InvalidSender(address(0));
         }
         _update(account, address(0), value);
     }
@@ -272,10 +272,10 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
      */
     function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual {
         if (owner == address(0)) {
-            revert ZRC20InvalidApprover(address(0));
+            revert SQRCTF1InvalidApprover(address(0));
         }
         if (spender == address(0)) {
-            revert ZRC20InvalidSpender(address(0));
+            revert SQRCTF1InvalidSpender(address(0));
         }
         _allowances[owner][spender] = value;
         if (emitEvent) {
@@ -295,7 +295,7 @@ abstract contract ZRC20 is Context, IZRC20, IZRC20Metadata, IZRC20Errors {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance < type(uint256).max) {
             if (currentAllowance < value) {
-                revert ZRC20InsufficientAllowance(spender, currentAllowance, value);
+                revert SQRCTF1InsufficientAllowance(spender, currentAllowance, value);
             }
             unchecked {
                 _approve(owner, spender, currentAllowance - value, false);

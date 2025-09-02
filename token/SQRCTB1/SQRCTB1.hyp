@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (token/ZRC1155/ZRC1155.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTB1/SQRCTB1.hyp)
 
 pragma hyperion >=0.0;
 
-import {IZRC1155} from "./IZRC1155.hyp";
-import {IZRC1155MetadataURI} from "./extensions/IZRC1155MetadataURI.hyp";
-import {ZRC1155Utils} from "./utils/ZRC1155Utils.hyp";
+import {ISQRCTB1} from "./ISQRCTB1.hyp";
+import {ISQRCTB1MetadataURI} from "./extensions/ISQRCTB1MetadataURI.hyp";
+import {SQRCTB1Utils} from "./utils/SQRCTB1Utils.hyp";
 import {Context} from "../../utils/Context.hyp";
 import {IZRC165, ZRC165} from "../../utils/introspection/ZRC165.hyp";
 import {Arrays} from "../../utils/Arrays.hyp";
-import {IZRC1155Errors} from "../../interfaces/draft-IZRC6093.hyp";
+import {ISQRCTB1Errors} from "../../interfaces/draft-IZRC6093.hyp";
 
 /**
  * @dev Implementation of the basic standard multi-token.
  * See https://eips.ethereum.org/EIPS/eip-1155
  * Originally based on code by Enjin: https://github.com/enjin/erc-1155
  */
-abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZRC1155Errors {
+abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQRCTB1Errors {
     using Arrays for uint256[];
     using Arrays for address[];
 
@@ -37,13 +37,13 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
     /// @inheritdoc IZRC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(ZRC165, IZRC165) returns (bool) {
         return
-            interfaceId == type(IZRC1155).interfaceId ||
-            interfaceId == type(IZRC1155MetadataURI).interfaceId ||
+            interfaceId == type(ISQRCTB1).interfaceId ||
+            interfaceId == type(ISQRCTB1MetadataURI).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
     /**
-     * @dev See {IZRC1155MetadataURI-uri}.
+     * @dev See {ISQRCTB1MetadataURI-uri}.
      *
      * This implementation returns the same URI for *all* token types. It relies
      * on the token type ID substitution mechanism
@@ -56,13 +56,13 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
         return _uri;
     }
 
-    /// @inheritdoc IZRC1155
+    /// @inheritdoc ISQRCTB1
     function balanceOf(address account, uint256 id) public view virtual returns (uint256) {
         return _balances[id][account];
     }
 
     /**
-     * @dev See {IZRC1155-balanceOfBatch}.
+     * @dev See {ISQRCTB1-balanceOfBatch}.
      *
      * Requirements:
      *
@@ -73,7 +73,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
         uint256[] memory ids
     ) public view virtual returns (uint256[] memory) {
         if (accounts.length != ids.length) {
-            revert ZRC1155InvalidArrayLength(ids.length, accounts.length);
+            revert SQRCTB1InvalidArrayLength(ids.length, accounts.length);
         }
 
         uint256[] memory batchBalances = new uint256[](accounts.length);
@@ -85,26 +85,26 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
         return batchBalances;
     }
 
-    /// @inheritdoc IZRC1155
+    /// @inheritdoc ISQRCTB1
     function setApprovalForAll(address operator, bool approved) public virtual {
         _setApprovalForAll(_msgSender(), operator, approved);
     }
 
-    /// @inheritdoc IZRC1155
+    /// @inheritdoc ISQRCTB1
     function isApprovedForAll(address account, address operator) public view virtual returns (bool) {
         return _operatorApprovals[account][operator];
     }
 
-    /// @inheritdoc IZRC1155
+    /// @inheritdoc ISQRCTB1
     function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public virtual {
         address sender = _msgSender();
         if (from != sender && !isApprovedForAll(from, sender)) {
-            revert ZRC1155MissingApprovalForAll(sender, from);
+            revert SQRCTB1MissingApprovalForAll(sender, from);
         }
         _safeTransferFrom(from, to, id, value, data);
     }
 
-    /// @inheritdoc IZRC1155
+    /// @inheritdoc ISQRCTB1
     function safeBatchTransferFrom(
         address from,
         address to,
@@ -114,7 +114,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
     ) public virtual {
         address sender = _msgSender();
         if (from != sender && !isApprovedForAll(from, sender)) {
-            revert ZRC1155MissingApprovalForAll(sender, from);
+            revert SQRCTB1MissingApprovalForAll(sender, from);
         }
         _safeBatchTransferFrom(from, to, ids, values, data);
     }
@@ -127,15 +127,15 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      *
      * Requirements:
      *
-     * - If `to` refers to a smart contract, it must implement either {IZRC1155Receiver-onZRC1155Received}
-     *   or {IZRC1155Receiver-onZRC1155BatchReceived} and return the acceptance magic value.
+     * - If `to` refers to a smart contract, it must implement either {ISQRCTB1Receiver-onSQRCTB1Received}
+     *   or {ISQRCTB1Receiver-onSQRCTB1BatchReceived} and return the acceptance magic value.
      * - `ids` and `values` must have the same length.
      *
-     * NOTE: The ZRC-1155 acceptance check is not performed in this function. See {_updateWithAcceptanceCheck} instead.
+     * NOTE: The SQRC-TB1 acceptance check is not performed in this function. See {_updateWithAcceptanceCheck} instead.
      */
     function _update(address from, address to, uint256[] memory ids, uint256[] memory values) internal virtual {
         if (ids.length != values.length) {
-            revert ZRC1155InvalidArrayLength(ids.length, values.length);
+            revert SQRCTB1InvalidArrayLength(ids.length, values.length);
         }
 
         address operator = _msgSender();
@@ -147,7 +147,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
             if (from != address(0)) {
                 uint256 fromBalance = _balances[id][from];
                 if (fromBalance < value) {
-                    revert ZRC1155InsufficientBalance(from, fromBalance, value, id);
+                    revert SQRCTB1InsufficientBalance(from, fromBalance, value, id);
                 }
                 unchecked {
                     // Overflow not possible: value <= fromBalance
@@ -171,7 +171,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
 
     /**
      * @dev Version of {_update} that performs the token acceptance check by calling
-     * {IZRC1155Receiver-onZRC1155Received} or {IZRC1155Receiver-onZRC1155BatchReceived} on the receiver address if it
+     * {ISQRCTB1Receiver-onSQRCTB1Received} or {ISQRCTB1Receiver-onSQRCTB1BatchReceived} on the receiver address if it
      * contains code (eg. is a smart contract at the moment of execution).
      *
      * IMPORTANT: Overriding this function is discouraged because it poses a reentrancy risk from the receiver. So any
@@ -191,9 +191,9 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
             if (ids.length == 1) {
                 uint256 id = ids.unsafeMemoryAccess(0);
                 uint256 value = values.unsafeMemoryAccess(0);
-                ZRC1155Utils.checkOnZRC1155Received(operator, from, to, id, value, data);
+                SQRCTB1Utils.checkOnSQRCTB1Received(operator, from, to, id, value, data);
             } else {
-                ZRC1155Utils.checkOnZRC1155BatchReceived(operator, from, to, ids, values, data);
+                SQRCTB1Utils.checkOnSQRCTB1BatchReceived(operator, from, to, ids, values, data);
             }
         }
     }
@@ -207,15 +207,15 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      *
      * - `to` cannot be the zero address.
      * - `from` must have a balance of tokens of type `id` of at least `value` amount.
-     * - If `to` refers to a smart contract, it must implement {IZRC1155Receiver-onZRC1155Received} and return the
+     * - If `to` refers to a smart contract, it must implement {ISQRCTB1Receiver-onSQRCTB1Received} and return the
      * acceptance magic value.
      */
     function _safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) internal {
         if (to == address(0)) {
-            revert ZRC1155InvalidReceiver(address(0));
+            revert SQRCTB1InvalidReceiver(address(0));
         }
         if (from == address(0)) {
-            revert ZRC1155InvalidSender(address(0));
+            revert SQRCTB1InvalidSender(address(0));
         }
         (uint256[] memory ids, uint256[] memory values) = _asSingletonArrays(id, value);
         _updateWithAcceptanceCheck(from, to, ids, values, data);
@@ -228,7 +228,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      *
      * Requirements:
      *
-     * - If `to` refers to a smart contract, it must implement {IZRC1155Receiver-onZRC1155BatchReceived} and return the
+     * - If `to` refers to a smart contract, it must implement {ISQRCTB1Receiver-onSQRCTB1BatchReceived} and return the
      * acceptance magic value.
      * - `ids` and `values` must have the same length.
      */
@@ -240,10 +240,10 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
         bytes memory data
     ) internal {
         if (to == address(0)) {
-            revert ZRC1155InvalidReceiver(address(0));
+            revert SQRCTB1InvalidReceiver(address(0));
         }
         if (from == address(0)) {
-            revert ZRC1155InvalidSender(address(0));
+            revert SQRCTB1InvalidSender(address(0));
         }
         _updateWithAcceptanceCheck(from, to, ids, values, data);
     }
@@ -279,12 +279,12 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      * Requirements:
      *
      * - `to` cannot be the zero address.
-     * - If `to` refers to a smart contract, it must implement {IZRC1155Receiver-onZRC1155Received} and return the
+     * - If `to` refers to a smart contract, it must implement {ISQRCTB1Receiver-onSQRCTB1Received} and return the
      * acceptance magic value.
      */
     function _mint(address to, uint256 id, uint256 value, bytes memory data) internal {
         if (to == address(0)) {
-            revert ZRC1155InvalidReceiver(address(0));
+            revert SQRCTB1InvalidReceiver(address(0));
         }
         (uint256[] memory ids, uint256[] memory values) = _asSingletonArrays(id, value);
         _updateWithAcceptanceCheck(address(0), to, ids, values, data);
@@ -299,12 +299,12 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      *
      * - `ids` and `values` must have the same length.
      * - `to` cannot be the zero address.
-     * - If `to` refers to a smart contract, it must implement {IZRC1155Receiver-onZRC1155BatchReceived} and return the
+     * - If `to` refers to a smart contract, it must implement {ISQRCTB1Receiver-onSQRCTB1BatchReceived} and return the
      * acceptance magic value.
      */
     function _mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data) internal {
         if (to == address(0)) {
-            revert ZRC1155InvalidReceiver(address(0));
+            revert SQRCTB1InvalidReceiver(address(0));
         }
         _updateWithAcceptanceCheck(address(0), to, ids, values, data);
     }
@@ -321,7 +321,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      */
     function _burn(address from, uint256 id, uint256 value) internal {
         if (from == address(0)) {
-            revert ZRC1155InvalidSender(address(0));
+            revert SQRCTB1InvalidSender(address(0));
         }
         (uint256[] memory ids, uint256[] memory values) = _asSingletonArrays(id, value);
         _updateWithAcceptanceCheck(from, address(0), ids, values, "");
@@ -340,7 +340,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      */
     function _burnBatch(address from, uint256[] memory ids, uint256[] memory values) internal {
         if (from == address(0)) {
-            revert ZRC1155InvalidSender(address(0));
+            revert SQRCTB1InvalidSender(address(0));
         }
         _updateWithAcceptanceCheck(from, address(0), ids, values, "");
     }
@@ -356,7 +356,7 @@ abstract contract ZRC1155 is Context, ZRC165, IZRC1155, IZRC1155MetadataURI, IZR
      */
     function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
         if (operator == address(0)) {
-            revert ZRC1155InvalidOperator(address(0));
+            revert SQRCTB1InvalidOperator(address(0));
         }
         _operatorApprovals[owner][operator] = approved;
         emit ApprovalForAll(owner, operator, approved);

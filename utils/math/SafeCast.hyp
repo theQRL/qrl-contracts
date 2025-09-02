@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (utils/math/SafeCast.hyp)
+// QRL Contracts (last updated v0.1.0) (utils/math/SafeCast.hyp)
 // This file was procedurally generated from scripts/generate/templates/SafeCast.js.
 
 pragma hyperion >=0.0;

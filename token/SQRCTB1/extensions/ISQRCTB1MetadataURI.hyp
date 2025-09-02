@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (token/ZRC1155/extensions/IZRC1155MetadataURI.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTB1/extensions/ISQRCTB1MetadataURI.hyp)
 
 pragma hyperion >=0.0;
 
-import {IZRC1155} from "../IZRC1155.hyp";
+import {ISQRCTB1} from "../ISQRCTB1.hyp";
 
 /**
- * @dev Interface of the optional ZRC1155MetadataExtension interface, as defined
+ * @dev Interface of the optional SQRCTB1MetadataExtension interface, as defined
  * in the https://eips.ethereum.org/EIPS/eip-1155#metadata-extensions[ZRC].
  */
-interface IZRC1155MetadataURI is IZRC1155 {
+interface ISQRCTB1MetadataURI is ISQRCTB1 {
     /**
      * @dev Returns the URI for token type `id`.
      *

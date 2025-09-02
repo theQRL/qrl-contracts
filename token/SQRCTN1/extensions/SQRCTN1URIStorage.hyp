@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (token/ZRC721/extensions/ZRC721URIStorage.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTN1/extensions/SQRCTN1URIStorage.hyp)
 
 pragma hyperion >=0.0;
 
-import {ZRC721} from "../ZRC721.hyp";
-import {IZRC721Metadata} from "./IZRC721Metadata.hyp";
+import {SQRCTN1} from "../SQRCTN1.hyp";
+import {ISQRCTN1Metadata} from "./ISQRCTN1Metadata.hyp";
 import {Strings} from "../../../utils/Strings.hyp";
 import {IZRC4906} from "../../../interfaces/IZRC4906.hyp";
 import {IZRC165} from "../../../interfaces/IZRC165.hyp";
 
 /**
- * @dev ZRC-721 token with storage based token URI management.
+ * @dev SQRC-TN1 token with storage based token URI management.
  */
-abstract contract ZRC721URIStorage is IZRC4906, ZRC721 {
+abstract contract SQRCTN1URIStorage is IZRC4906, SQRCTN1 {
     using Strings for uint256;
 
     // Interface ID as defined in ZRC-4906. This does not correspond to a traditional interface ID as ZRC-4906 only
@@ -23,11 +23,11 @@ abstract contract ZRC721URIStorage is IZRC4906, ZRC721 {
     mapping(uint256 tokenId => string) private _tokenURIs;
 
     /// @inheritdoc IZRC165
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ZRC721, IZRC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(SQRCTN1, IZRC165) returns (bool) {
         return interfaceId == ZRC4906_INTERFACE_ID || super.supportsInterface(interfaceId);
     }
 
-    /// @inheritdoc IZRC721Metadata
+    /// @inheritdoc ISQRCTN1Metadata
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         _requireOwned(tokenId);
 

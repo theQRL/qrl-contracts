@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-// Zond Contracts (last updated v0.1.0) (token/ZRC20/IZRC20.hyp)
+// QRL Contracts (last updated v0.1.0) (token/SQRCTF1/ISQRCTF1.hyp)
 
 pragma hyperion >=0.0;
 
 /**
- * @dev Interface of the ZRC-20 standard as defined in the ZRC.
+ * @dev Interface of the SQRC-TF1 standard as defined in the ZRC.
  */
-interface IZRC20 {
+interface ISQRCTF1 {
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
      * another (`to`).
