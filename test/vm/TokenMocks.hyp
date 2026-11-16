@@ -31,11 +31,38 @@ contract MultiToken is SQRCTB1 {
     }
 }
 
+// Allocates around the balance update, after the token has built its single-element arrays.
+contract AllocatingMultiToken is MultiToken {
+    bytes32 public bufferBefore;
+    bytes32 public bufferAfter;
+
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal virtual override {
+        bytes memory buffer = new bytes(200);
+        for (uint256 i = 0; i < buffer.length; ++i) buffer[i] = bytes1(uint8(i + 1));
+        bufferBefore = keccak256(buffer);
+
+        super._update(from, to, ids, values);
+
+        bufferAfter = keccak256(buffer);
+    }
+}
+
 contract Collectible is SQRCTN1 {
     constructor() SQRCTN1("Collectible", "CLT") {}
 
     function safeMint(address to, uint256 tokenId, bytes memory data) external {
         _safeMint(to, tokenId, data);
+    }
+}
+
+contract CollectibleWithBaseURI is Collectible {
+    function _baseURI() internal pure override returns (string memory) {
+        return "https://example.invalid/token/";
     }
 }
 

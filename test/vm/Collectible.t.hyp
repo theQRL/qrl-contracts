@@ -4,7 +4,7 @@ pragma hyperion >=0.0;
 
 import {ISQRCTN1} from "../../token/SQRCTN1/ISQRCTN1.hyp";
 import {ISQRCTN1Errors} from "../../interfaces/draft-IZRC6093.hyp";
-import {AcceptingReceiver, Collectible, RejectingReceiver, Rejected, SilentReceiver, NOTE} from "./TokenMocks.hyp";
+import {AcceptingReceiver, Collectible, CollectibleWithBaseURI, RejectingReceiver, Rejected, SilentReceiver, NOTE} from "./TokenMocks.hyp";
 
 contract CollectibleTest is AcceptingReceiver {
     function testEmitsTransferOnSafeMint() external returns (bytes32) {
@@ -47,7 +47,13 @@ contract CollectibleTest is AcceptingReceiver {
         }
     }
 
-    function testTokenUriUsesDecimalTokenId() external {
+    function testTokenUriIsBaseUriFollowedByDecimalTokenId() external {
+        CollectibleWithBaseURI token = new CollectibleWithBaseURI();
+        token.safeMint(address(this), 12345, "");
+        require(keccak256(bytes(token.tokenURI(12345))) == keccak256("https://example.invalid/token/12345"));
+    }
+
+    function testTokenUriIsEmptyWithoutBaseUri() external {
         Collectible token = new Collectible();
         token.safeMint(address(this), 12345, "");
         require(bytes(token.tokenURI(12345)).length == 0);

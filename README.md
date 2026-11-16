@@ -80,7 +80,11 @@ In qrvmone through Hyperion's semantic test runner, which needs a native Hyperio
 IHYPTEST=/path/to/hyperion/build/test/tools/ihyptest QRVMONE=/path/to/libqrvmone.dylib npm run test:hyptest
 ```
 
-Both accept a name filter as an argument, for example `npm run test:vm -- MathTest`.
+Both accept a filter as an argument and run the tests whose name contains it. `test:vm` names a test `<Contract>.<function>()`, for example `MathTest.testModExp()`; `test:hyptest` names it `<File>.<function>`, for example `Math.testModExp`. A function name works for both:
+
+```bash
+GO_QRL=/path/to/go-qrl npm run test:vm -- testModExp
+```
 
 ## Releases
 

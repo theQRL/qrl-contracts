@@ -24,14 +24,16 @@ A change to a contract's behaviour, storage layout or public API is breaking for
 
 ## What a release does
 
-1. `preflight` compiles the library and runs `npm test` on the tip of `main`.
-2. `release` checks that the commit it is about to release contains the one preflight validated, then runs semantic-release, which:
+1. `preflight` compiles the library and runs `npm test` on the commit that triggered the run.
+2. `release` checks out that same commit, confirms it is the one preflight validated, then runs semantic-release, which:
    - sets the version in `package.json` and `package-lock.json`
    - writes `CHANGELOG.md`
    - commits those files and pushes the commit and the `vX.Y.Z` tag
    - packs the package once and publishes that tarball to npm (`scripts/release-publish.sh`)
    - creates the GitHub release
 3. The remaining jobs attach checksums, SBOMs, build attestations and SLSA provenance for the published tarball to the GitHub release.
+
+If `main` has advanced since the run was triggered, semantic-release finds its branch behind the remote and publishes nothing. The run triggered by the newer commit releases everything instead.
 
 npm publishing uses trusted publishing (OIDC). There is no npm token in the repository.
 

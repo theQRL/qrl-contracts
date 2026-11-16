@@ -30,15 +30,16 @@ jobs:
       # Keep equal to HYPC_JS_REF in hyperion-compile.yml.
       HYPC_JS_REF: f0a69fefe9a31d0538981733323cdab325ed00ea # v0.3.1
     outputs:
-      # The exact commit this job validated. The release job asserts it is
-      # an ancestor of whatever it releases, since main can advance between
-      # queued jobs.
+      # The exact commit this job validated. The release job releases this
+      # commit and no other.
       sha: ${{ steps.resolve-sha.outputs.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          # The triggering commit, not the tip of main: main can advance
+          # while this run is queued.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Resolve validated commit
@@ -91,22 +92,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Always release from tip of main, not the triggering commit.
-          ref: main
+          # The triggering commit, the same one preflight validated.
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Assert preflight ancestry
+      - name: Assert the preflight commit
         env:
           PREFLIGHT_SHA: ${{ needs.preflight.outputs.sha }}
-        # This job must stay on writable HEAD (semantic-release pushes a
-        # release commit), so it cannot be pinned to the preflight commit.
-        # Instead, whatever is released must contain the commit preflight
-        # validated.
+        # Only the exact commit preflight validated is released. The local
+        # `main` that semantic-release commits to is created at that commit.
+        # If main has advanced since this run was triggered, semantic-release
+        # sees a local branch behind the remote and publishes nothing; the run
+        # for the newer commit releases instead.
         run: |
           echo "preflight validated: ${PREFLIGHT_SHA}"
           echo "releasing HEAD:      $(git rev-parse HEAD)"
-          git merge-base --is-ancestor "$PREFLIGHT_SHA" HEAD
+          test "$(git rev-parse HEAD)" = "${PREFLIGHT_SHA}"
+          git switch -C main
 
       - name: Setup Node.js
         # Pinned to 22.14.0: its bundled npm can cleanly self-update to

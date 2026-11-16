@@ -112,6 +112,10 @@ for (const [pipeline, viaIR] of [
   ['ir', true]
 ]) {
   const contracts = files.flatMap((file) => compile(file, viaIR));
+  if (contracts.length === 0) {
+    console.error(filter ? `error: no test matches "${filter}"` : `error: no tests found in ${testDir}`);
+    process.exit(1);
+  }
   for (const result of execute(contracts)) {
     const failure = check(result);
     if (failure) {

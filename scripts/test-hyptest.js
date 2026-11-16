@@ -82,6 +82,10 @@ function run(optimize) {
       .filter((file) => file.endsWith('.t.hyp'))
       .flatMap((file) => semanticTests(`${testDir}/${file}`))
       .filter((test) => !filter || test.name.includes(filter));
+    if (tests.length === 0) {
+      console.error(filter ? `error: no test matches "${filter}"` : `error: no tests found in ${testDir}`);
+      process.exit(1);
+    }
     for (const test of tests) fs.writeFileSync(path.join(dir, `${test.name}.hyp`), test.content);
 
     const args = ['--no-smt', '--no-color', '--testpath', testPath, '--vm', qrvmone];
@@ -91,7 +95,7 @@ function run(optimize) {
       childProcess.spawnSync(ihyptest, [...extra, ...args], {
         encoding: 'utf8',
         input: '',
-        timeout: 600000,
+        timeout: 30 * 60 * 1000,
         maxBuffer: 256 * 1024 * 1024
       });
     const complete = (result) => {

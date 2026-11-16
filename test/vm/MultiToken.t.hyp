@@ -4,7 +4,7 @@ pragma hyperion >=0.0;
 
 import {ISQRCTB1} from "../../token/SQRCTB1/ISQRCTB1.hyp";
 import {ISQRCTB1Errors} from "../../interfaces/draft-IZRC6093.hyp";
-import {AcceptingReceiver, MultiToken, RejectingReceiver, Rejected, SilentReceiver, NOTE} from "./TokenMocks.hyp";
+import {AcceptingReceiver, AllocatingMultiToken, MultiToken, RejectingReceiver, Rejected, SilentReceiver, NOTE} from "./TokenMocks.hyp";
 
 contract MultiTokenTest is AcceptingReceiver {
     address private constant ALICE = address((uint512(0xa11ce) << 480) | 0xa11ce);
@@ -52,6 +52,23 @@ contract MultiTokenTest is AcceptingReceiver {
         token.mint(address(this), type(uint256).max, type(uint256).max, data);
         require(keccak256(data) == keccak256(hex"0102030405"));
         require(token.balanceOf(address(this), type(uint256).max) == type(uint256).max);
+    }
+
+    function testAllocationsDuringSingleUpdateDoNotOverlapTokenArrays() external {
+        AllocatingMultiToken token = new AllocatingMultiToken();
+        AcceptingReceiver receiver = new AcceptingReceiver();
+
+        token.mint(address(this), 7, 5, "data");
+        require(token.bufferBefore() != bytes32(0) && token.bufferAfter() == token.bufferBefore());
+        require(token.balanceOf(address(this), 7) == 5 && token.balanceOf(address(this), 0) == 0);
+
+        token.safeTransferFrom(address(this), address(receiver), 7, 2, "");
+        require(token.bufferAfter() == token.bufferBefore());
+        require(token.balanceOf(address(this), 7) == 3 && token.balanceOf(address(receiver), 7) == 2);
+
+        token.burn(address(this), 7, 3);
+        require(token.bufferAfter() == token.bufferBefore());
+        require(token.balanceOf(address(this), 7) == 0 && token.balanceOf(address(receiver), 7) == 2);
     }
 
     function testBatchMintTransferAndBurn() external {
