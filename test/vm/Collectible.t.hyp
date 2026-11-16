@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {ISQRCTN1} from "../../token/SQRCTN1/ISQRCTN1.hyp";
+import {ISQRCTN1Errors} from "../../interfaces/draft-IZRC6093.hyp";
+import {AcceptingReceiver, Collectible, RejectingReceiver, Rejected, SilentReceiver, NOTE} from "./TokenMocks.hyp";
+
+contract CollectibleTest is AcceptingReceiver {
+    function testEmitsTransferOnSafeMint() external returns (bytes32) {
+        Collectible token = new Collectible();
+        token.safeMint(address(this), 1, "");
+        require(token.ownerOf(1) == address(this));
+        require(token.balanceOf(address(this)) == 1);
+        return ISQRCTN1.Transfer.selector;
+    }
+
+    function testSafeMintForwardsReceiverRevertData() external {
+        Collectible token = new Collectible();
+        RejectingReceiver receiver = new RejectingReceiver();
+        bytes memory expected = abi.encodeWithSelector(Rejected.selector, uint256(9), address(0), NOTE);
+
+        bytes memory direct;
+        try receiver.onSQRCTN1Received(address(this), address(0), 9, "") {} catch (bytes memory data) {
+            direct = data;
+        }
+        try token.safeMint(address(receiver), 9, "") {
+            revert();
+        } catch (bytes memory data) {
+            require(data.length == expected.length);
+            require(keccak256(data) == keccak256(expected));
+            require(keccak256(data) == keccak256(direct));
+        }
+    }
+
+    function testReceiverRevertingWithoutDataIsInvalidReceiver() external {
+        Collectible token = new Collectible();
+        SilentReceiver receiver = new SilentReceiver();
+        try token.safeMint(address(receiver), 9, "") {
+            revert();
+        } catch (bytes memory data) {
+            bytes memory expected = abi.encodeWithSelector(
+                ISQRCTN1Errors.SQRCTN1InvalidReceiver.selector,
+                address(receiver)
+            );
+            require(keccak256(data) == keccak256(expected));
+        }
+    }
+
+    function testTokenUriUsesDecimalTokenId() external {
+        Collectible token = new Collectible();
+        token.safeMint(address(this), 12345, "");
+        require(bytes(token.tokenURI(12345)).length == 0);
+    }
+}

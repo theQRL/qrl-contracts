@@ -1,0 +1,277 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {Arrays} from "../../utils/Arrays.hyp";
+import {SlotDerivation} from "../../utils/SlotDerivation.hyp";
+import {StorageSlot} from "../../utils/StorageSlot.hyp";
+
+contract SlotsTest {
+    using SlotDerivation for bytes32;
+    using SlotDerivation for string;
+    using StorageSlot for bytes32;
+
+    mapping(address => uint256) private _byAddress;
+    mapping(bool => uint256) private _byBool;
+    mapping(bytes32 => uint256) private _byBytes32;
+    mapping(uint256 => uint256) private _byUint;
+    mapping(int256 => uint256) private _byInt;
+    mapping(string => uint256) private _byString;
+    mapping(bytes => uint256) private _byBytes;
+    mapping(uint256 => mapping(address => uint256)) private _nested;
+    uint256[] private _numbers;
+    address[] private _accounts;
+    bytes32[] private _words;
+    bytes[] private _blobs;
+    string[] private _texts;
+    uint256 private _plain;
+    address private _owner;
+
+    address private constant ALICE = address(uint512(0x1111) << 400 | 0xa11ce);
+    address private constant BOB = address(uint512(0x2222) << 400 | 0xb0b);
+    bytes32 private constant WORD_A = keccak256("a");
+    bytes32 private constant WORD_B = keccak256("b");
+
+    function _read(bytes32 slot) private view returns (uint256) {
+        return slot.getUint256Slot().value;
+    }
+
+    function _slotOf(uint256 position) private pure returns (bytes32) {
+        return bytes32(position);
+    }
+
+    function testAddressKeysMatchCompilerLayout() external {
+        bytes32 base;
+        assembly {
+            base := shl(256, _byAddress.slot)
+        }
+        _byAddress[ALICE] = 11;
+        _byAddress[BOB] = 22;
+        require(_read(base.deriveMapping(ALICE)) == 11);
+        require(_read(base.deriveMapping(BOB)) == 22);
+        require(base.deriveMapping(ALICE) != base.deriveMapping(BOB));
+
+        base.deriveMapping(ALICE).getUint256Slot().value = 33;
+        require(_byAddress[ALICE] == 33 && _byAddress[BOB] == 22);
+    }
+
+    function testAddressKeysDifferingOnlyInHighBytesAreDistinct() external pure {
+        bytes32 base = _slotOf(7);
+        address low = address(uint512(1));
+        address high = address((uint512(1) << 300) | 1);
+        require(base.deriveMapping(low) != base.deriveMapping(high));
+    }
+
+    function testBoolKeysMatchCompilerLayout() external {
+        bytes32 base;
+        assembly {
+            base := shl(256, _byBool.slot)
+        }
+        _byBool[true] = 1;
+        _byBool[false] = 2;
+        require(_read(base.deriveMapping(true)) == 1);
+        require(_read(base.deriveMapping(false)) == 2);
+    }
+
+    function testBytes32KeysMatchCompilerLayout() external {
+        bytes32 base;
+        assembly {
+            base := shl(256, _byBytes32.slot)
+        }
+        _byBytes32[WORD_A] = 1;
+        _byBytes32[WORD_B] = 2;
+        require(_read(base.deriveMapping(WORD_A)) == 1);
+        require(_read(base.deriveMapping(WORD_B)) == 2);
+        require(base.deriveMapping(WORD_A) != base.deriveMapping(WORD_B));
+    }
+
+    function testUintKeysMatchCompilerLayout() external {
+        bytes32 base;
+        assembly {
+            base := shl(256, _byUint.slot)
+        }
+        _byUint[0] = 1;
+        _byUint[1] = 2;
+        _byUint[type(uint256).max] = 3;
+        require(_read(base.deriveMapping(uint256(0))) == 1);
+        require(_read(base.deriveMapping(uint256(1))) == 2);
+        require(_read(base.deriveMapping(type(uint256).max)) == 3);
+    }
+
+    function testIntKeysMatchCompilerLayout() external {
+        bytes32 base;
+        assembly {
+            base := shl(256, _byInt.slot)
+        }
+        _byInt[-1] = 1;
+        _byInt[1] = 2;
+        _byInt[type(int256).min] = 3;
+        require(_read(base.deriveMapping(int256(-1))) == 1);
+        require(_read(base.deriveMapping(int256(1))) == 2);
+        require(_read(base.deriveMapping(type(int256).min)) == 3);
+    }
+
+    function testStringAndBytesKeysMatchCompilerLayout() external {
+        bytes32 strings;
+        bytes32 blobs;
+        assembly {
+            strings := shl(256, _byString.slot)
+            blobs := shl(256, _byBytes.slot)
+        }
+        string memory long = "a key that is longer than a single sixty-four byte word, so it spans several of them";
+        _byString[""] = 1;
+        _byString["key"] = 2;
+        _byString[long] = 3;
+        _byBytes[hex"00"] = 4;
+        _byBytes[hex"0000"] = 5;
+        require(_read(strings.deriveMapping(string(""))) == 1);
+        require(_read(strings.deriveMapping(string("key"))) == 2);
+        require(_read(strings.deriveMapping(long)) == 3);
+        require(_read(blobs.deriveMapping(bytes(hex"00"))) == 4);
+        require(_read(blobs.deriveMapping(bytes(hex"0000"))) == 5);
+    }
+
+    function testDerivingFromStringKeyLeavesMemoryIntact() external pure {
+        bytes memory key = "key";
+        bytes memory neighbour = hex"aabbccdd";
+        _slotOf(1).deriveMapping(key);
+        require(keccak256(key) == keccak256("key"));
+        require(keccak256(neighbour) == keccak256(hex"aabbccdd"));
+    }
+
+    function testNestedMappingMatchesCompilerLayout() external {
+        bytes32 base;
+        assembly {
+            base := shl(256, _nested.slot)
+        }
+        _nested[5][ALICE] = 55;
+        require(_read(base.deriveMapping(uint256(5)).deriveMapping(ALICE)) == 55);
+    }
+
+    function testArrayElementsMatchCompilerLayout() external {
+        bytes32 accounts;
+        bytes32 numbers;
+        assembly {
+            accounts := shl(256, _accounts.slot)
+            numbers := shl(256, _numbers.slot)
+        }
+        _accounts.push(ALICE);
+        _accounts.push(BOB);
+        _numbers.push(10);
+        _numbers.push(20);
+        _numbers.push(30);
+
+        require(_read(accounts) == 2);
+        require(accounts.deriveArray().getAddressSlot().value == ALICE);
+        require(accounts.deriveArray().offset(1).getAddressSlot().value == BOB);
+
+        // 32-byte elements are stored two to a slot.
+        require(_read(numbers) == 3);
+        require(_read(numbers.deriveArray()) == 10);
+        require(_read(numbers.deriveArray().offset(1)) == 30);
+    }
+
+    function testUnsafeAccessMatchesCompilerLayout() external {
+        _accounts.push(ALICE);
+        _accounts.push(BOB);
+        _blobs.push(hex"01");
+        _blobs.push(hex"0203");
+        _texts.push("one");
+        _texts.push("two");
+
+        require(Arrays.unsafeAccess(_accounts, 0).value == ALICE);
+        require(Arrays.unsafeAccess(_accounts, 1).value == BOB);
+        require(keccak256(Arrays.unsafeAccess(_blobs, 0).value) == keccak256(hex"01"));
+        require(keccak256(Arrays.unsafeAccess(_blobs, 1).value) == keccak256(hex"0203"));
+        require(keccak256(bytes(Arrays.unsafeAccess(_texts, 1).value)) == keccak256("two"));
+
+        Arrays.unsafeAccess(_accounts, 0).value = BOB;
+        Arrays.unsafeAccess(_texts, 0).value = "uno";
+        require(_accounts[0] == BOB && _accounts[1] == BOB);
+        require(keccak256(bytes(_texts[0])) == keccak256("uno"));
+    }
+
+    function testUnsafeSetLength() external {
+        _numbers.push(10);
+        _numbers.push(20);
+        Arrays.unsafeSetLength(_numbers, 1);
+        require(_numbers.length == 1 && _numbers[0] == 10);
+    }
+
+    function testSortedStorageSearch() external {
+        _numbers.push(10);
+        _numbers.push(20);
+        _numbers.push(20);
+        _numbers.push(40);
+        _numbers.push(type(uint256).max);
+        require(Arrays.lowerBound(_numbers, 5) == 0);
+        require(Arrays.lowerBound(_numbers, 10) == 0);
+        require(Arrays.lowerBound(_numbers, 20) == 1);
+        require(Arrays.upperBound(_numbers, 20) == 3);
+        require(Arrays.lowerBound(_numbers, 40) == 3);
+        require(Arrays.upperBound(_numbers, 40) == 4);
+        require(Arrays.findUpperBound(_numbers, 25) == 3);
+        require(Arrays.findUpperBound(_numbers, 40) == 3);
+        require(Arrays.lowerBound(_numbers, type(uint256).max) == 4);
+        require(Arrays.upperBound(_numbers, type(uint256).max) == 5);
+    }
+
+    function testSearchOfEmptyStorageArray() external view {
+        require(Arrays.lowerBound(_numbers, 1) == 0);
+        require(Arrays.upperBound(_numbers, 1) == 0);
+        require(Arrays.findUpperBound(_numbers, 1) == 0);
+    }
+
+    function testStorageSlotAddressesStateVariables() external {
+        bytes32 plain;
+        bytes32 owner;
+        assembly {
+            plain := shl(256, _plain.slot)
+            owner := shl(256, _owner.slot)
+        }
+        _plain = 77;
+        _owner = ALICE;
+        require(plain.getUint256Slot().value == 77);
+        require(owner.getAddressSlot().value == ALICE);
+
+        plain.getUint256Slot().value = 78;
+        owner.getAddressSlot().value = BOB;
+        require(_plain == 78 && _owner == BOB);
+    }
+
+    function testDistinctSlotsHoldDistinctValues() external {
+        WORD_A.getUint256Slot().value = 1;
+        WORD_B.getUint256Slot().value = 2;
+        WORD_A.offset(1).getBooleanSlot().value = true;
+        WORD_B.offset(1).getBytes32Slot().value = WORD_A;
+        WORD_A.offset(2).getInt256Slot().value = -5;
+        WORD_B.offset(2).getStringSlot().value = "text";
+        WORD_B.offset(3).getBytesSlot().value = hex"beef";
+
+        require(WORD_A.getUint256Slot().value == 1);
+        require(WORD_B.getUint256Slot().value == 2);
+        require(WORD_A.offset(1).getBooleanSlot().value);
+        require(WORD_B.offset(1).getBytes32Slot().value == WORD_A);
+        require(WORD_A.offset(2).getInt256Slot().value == -5);
+        require(keccak256(bytes(WORD_B.offset(2).getStringSlot().value)) == keccak256("text"));
+        require(keccak256(WORD_B.offset(3).getBytesSlot().value) == keccak256(hex"beef"));
+        require(_plain == 0 && _numbers.length == 0);
+    }
+
+    function testNamespaceSlotFollowsFormula() external pure {
+        string memory namespace = "example.main";
+        bytes32 expected = keccak256(abi.encode(uint256(keccak256(bytes(namespace))) - 1)) & ~bytes32(uint256(0xff));
+        require(namespace.zrc7201Slot() == expected);
+        require(uint256(namespace.zrc7201Slot()) & 0xff == 0);
+        require(string("example.other").zrc7201Slot() != namespace.zrc7201Slot());
+        require(string("").zrc7201Slot() != namespace.zrc7201Slot());
+    }
+
+    function testNamespacedMappingRoundTrips() external {
+        bytes32 base = string("example.main").zrc7201Slot();
+        base.deriveMapping(uint256(1)).getAddressSlot().value = ALICE;
+        base.deriveMapping(uint256(2)).getAddressSlot().value = BOB;
+        require(base.deriveMapping(uint256(1)).getAddressSlot().value == ALICE);
+        require(base.deriveMapping(uint256(2)).getAddressSlot().value == BOB);
+    }
+}

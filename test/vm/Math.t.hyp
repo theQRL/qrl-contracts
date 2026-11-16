@@ -1,0 +1,217 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {Math} from "../../utils/math/Math.hyp";
+import {Panic} from "../../utils/Panic.hyp";
+
+contract MathTest {
+    uint256 private constant MAX = type(uint256).max;
+    uint256 private constant TWO_128 = 1 << 128;
+
+    function mulDiv(uint256 x, uint256 y, uint256 denominator) external pure returns (uint256) {
+        return Math.mulDiv(x, y, denominator);
+    }
+
+    function mulShr(uint256 x, uint256 y, uint8 n) external pure returns (uint256) {
+        return Math.mulShr(x, y, n);
+    }
+
+    function modExp(uint256 b, uint256 e, uint256 m) external view returns (uint256) {
+        return Math.modExp(b, e, m);
+    }
+
+    function _panicCode(bytes memory data) private pure returns (uint256 code) {
+        require(data.length == 68);
+        require(bytes4(data) == 0xdf75fb3b);
+        assembly ("memory-safe") {
+            code := mload(add(data, 0x44))
+        }
+    }
+
+    function testAdd512CarriesIntoHighWord() external pure {
+        (uint256 high, uint256 low) = Math.add512(MAX, 1);
+        require(high == 1 && low == 0);
+        (high, low) = Math.add512(MAX, MAX);
+        require(high == 1 && low == MAX - 1);
+        (high, low) = Math.add512(1, 2);
+        require(high == 0 && low == 3);
+    }
+
+    function testMul512ReturnsFullProduct() external pure {
+        (uint256 high, uint256 low) = Math.mul512(TWO_128, TWO_128);
+        require(high == 1 && low == 0);
+        (high, low) = Math.mul512(MAX, MAX);
+        require(high == MAX - 1 && low == 1);
+        (high, low) = Math.mul512(3, 5);
+        require(high == 0 && low == 15);
+    }
+
+    function testTryMulReportsOverflow() external pure {
+        (bool success, uint256 result) = Math.tryMul(TWO_128, TWO_128);
+        require(!success && result == 0);
+        (success, result) = Math.tryMul(TWO_128, TWO_128 - 1);
+        require(success && result == MAX - TWO_128 + 1);
+        (success, result) = Math.tryMul(0, MAX);
+        require(success && result == 0);
+        require(Math.saturatingMul(MAX, 2) == MAX);
+    }
+
+    function testTryAddAndTrySubReportOverflow() external pure {
+        (bool success, uint256 result) = Math.tryAdd(MAX, 1);
+        require(!success && result == 0);
+        (success, result) = Math.trySub(1, 2);
+        require(!success && result == 0);
+        require(Math.saturatingAdd(MAX, 1) == MAX);
+        require(Math.saturatingSub(1, 2) == 0);
+    }
+
+    function testTryDivAndTryModHandleZeroDivisor() external pure {
+        (bool success, uint256 result) = Math.tryDiv(7, 0);
+        require(!success && result == 0);
+        (success, result) = Math.tryDiv(7, 2);
+        require(success && result == 3);
+        (success, result) = Math.tryMod(7, 0);
+        require(!success && result == 0);
+        (success, result) = Math.tryMod(7, 4);
+        require(success && result == 3);
+    }
+
+    function testMulDivKeepsFullPrecision() external pure {
+        require(Math.mulDiv(TWO_128, TWO_128, TWO_128) == TWO_128);
+        require(Math.mulDiv(MAX, MAX, MAX) == MAX);
+        require(Math.mulDiv(MAX, 3, 4) == (MAX / 4) * 3 + 2);
+        require(Math.mulDiv(6, 7, 4) == 10);
+        require(Math.mulDiv(6, 7, 4, Math.Rounding.Ceil) == 11);
+        require(Math.mulDiv(MAX, MAX - 1, MAX) == MAX - 1);
+    }
+
+    function testMulDivOverflowPanics() external view {
+        try this.mulDiv(TWO_128, TWO_128, 1) {
+            revert();
+        } catch (bytes memory data) {
+            require(_panicCode(data) == Panic.UNDER_OVERFLOW);
+        }
+        try this.mulDiv(MAX, MAX, MAX - 1) {
+            revert();
+        } catch (bytes memory data) {
+            require(_panicCode(data) == Panic.UNDER_OVERFLOW);
+        }
+    }
+
+    function testMulDivByZeroPanics() external view {
+        try this.mulDiv(1, 1, 0) {
+            revert();
+        } catch (bytes memory data) {
+            require(_panicCode(data) == Panic.DIVISION_BY_ZERO);
+        }
+        try this.mulDiv(MAX, MAX, 0) {
+            revert();
+        } catch (bytes memory data) {
+            require(_panicCode(data) == Panic.DIVISION_BY_ZERO);
+        }
+    }
+
+    function testMulShrKeepsFullPrecision() external view {
+        require(Math.mulShr(TWO_128, TWO_128, 128) == TWO_128);
+        require(Math.mulShr(MAX, TWO_128, 255) == (1 << 129) - 1);
+        require(Math.mulShr(7, 3, 1) == 10);
+        require(Math.mulShr(7, 3, 1, Math.Rounding.Ceil) == 11);
+        try this.mulShr(MAX, MAX, 1) {
+            revert();
+        } catch (bytes memory data) {
+            require(_panicCode(data) == Panic.UNDER_OVERFLOW);
+        }
+    }
+
+    function testModExp() external view {
+        require(Math.modExp(3, 5, 7) == 5);
+        require(Math.modExp(2, 10, 1000) == 24);
+        require(Math.modExp(MAX, 2, MAX - 1) == 1);
+        require(Math.modExp(2, 255, MAX) == 1 << 255);
+        (bool success, uint256 result) = Math.tryModExp(3, 5, 0);
+        require(!success && result == 0);
+    }
+
+    function testModExpByZeroPanics() external view {
+        try this.modExp(3, 5, 0) {
+            revert();
+        } catch (bytes memory data) {
+            require(_panicCode(data) == Panic.DIVISION_BY_ZERO);
+        }
+    }
+
+    function testModExpBytes() external view {
+        bytes memory result = Math.modExp(hex"03", hex"05", hex"07");
+        require(keccak256(result) == keccak256(hex"05"));
+
+        result = Math.modExp(hex"02", hex"0a", hex"03e8");
+        require(keccak256(result) == keccak256(hex"0018"));
+
+        // 2 ** 600 mod (2 ** 520 + 1), operands wider than one word
+        bytes memory modulus = new bytes(66);
+        modulus[0] = 0x01;
+        modulus[65] = 0x01;
+        result = Math.modExp(hex"02", hex"0258", modulus);
+        // 2 ** 600 = 2 ** 80 * 2 ** 520 ≡ -(2 ** 80), so the result is 2 ** 520 + 1 - 2 ** 80
+        bytes memory expected = new bytes(66);
+        for (uint256 i = 1; i < 56; ++i) expected[i] = 0xff;
+        expected[65] = 0x01;
+        require(result.length == 66);
+        require(keccak256(result) == keccak256(expected));
+
+        (bool success, bytes memory empty) = Math.tryModExp(hex"03", hex"05", hex"0000");
+        require(!success && empty.length == 0);
+    }
+
+    function testModExpBytesLeavesMemoryUsable() external view {
+        bytes memory result = Math.modExp(hex"03", hex"05", hex"07");
+        bytes memory next = new bytes(64);
+        next[0] = 0xaa;
+        require(result.length == 1 && result[0] == 0x05);
+        require(next.length == 64 && next[0] == 0xaa);
+    }
+
+    function testInvMod() external view {
+        require(Math.invMod(3, 7) == 5);
+        require(Math.invMod(2, 4) == 0);
+        require(Math.invModPrime(3, 7) == 5);
+    }
+
+    function testSqrt() external pure {
+        require(Math.sqrt(0) == 0);
+        require(Math.sqrt(144) == 12);
+        require(Math.sqrt(145) == 12);
+        require(Math.sqrt(MAX) == TWO_128 - 1);
+        require(Math.sqrt(145, Math.Rounding.Ceil) == 13);
+    }
+
+    function testLogarithms() external pure {
+        require(Math.log2(0) == 0);
+        require(Math.log2(1) == 0);
+        require(Math.log2(2) == 1);
+        require(Math.log2(3) == 1);
+        require(Math.log2(255) == 7);
+        require(Math.log2(256) == 8);
+        require(Math.log2(MAX) == 255);
+        for (uint256 i = 0; i < 256; ++i) {
+            require(Math.log2(1 << i) == i);
+            require(Math.log2((1 << i) | 1) == i);
+        }
+        require(Math.log2(5, Math.Rounding.Ceil) == 3);
+        require(Math.log10(999) == 2);
+        require(Math.log10(1000) == 3);
+        require(Math.log10(MAX) == 77);
+        require(Math.log256(255) == 0);
+        require(Math.log256(256) == 1);
+        require(Math.log256(MAX) == 31);
+    }
+
+    function testAverageAndCeilDiv() external pure {
+        require(Math.average(MAX, MAX - 2) == MAX - 1);
+        require(Math.ceilDiv(7, 2) == 4);
+        require(Math.ceilDiv(0, 2) == 0);
+        require(Math.ceilDiv(MAX, 1) == MAX);
+        require(Math.max(1, 2) == 2 && Math.min(1, 2) == 1);
+    }
+}
