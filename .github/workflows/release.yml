@@ -1,0 +1,436 @@
+name: Release
+
+# Publishes on push to main; branch protection and the preflight job below
+# gate the publish path so unverified code never reaches npm.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Default-deny: each job opts in explicitly via its own `permissions:` block.
+permissions: {}
+
+# Queue release runs, never cancel them: a cancellation landing between
+# semantic-release's tag push and the npm publish leaves an orphaned release
+# (tag exists, npm never serves the version).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Defence-in-depth: re-runs the compile and test steps on the checked-out
+  # commit before the publish path begins.
+  preflight:
+    name: Preflight (compile + test)
+    runs-on: ubuntu-latest
+    if: github.repository == 'theQRL/qrl-contracts'
+    permissions:
+      contents: read
+    env:
+      # Keep equal to HYPC_JS_REF in hyperion-compile.yml.
+      HYPC_JS_REF: f0a69fefe9a31d0538981733323cdab325ed00ea # v0.3.1
+    outputs:
+      # The exact commit this job validated. The release job releases this
+      # commit and no other.
+      sha: ${{ steps.resolve-sha.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The triggering commit, not the tip of main: main can advance
+          # while this run is queued.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Resolve validated commit
+        id: resolve-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Build Hyperion compiler
+        run: |
+          git init /tmp/hypc-js
+          git -C /tmp/hypc-js remote add origin https://github.com/theQRL/hypc-js.git
+          git -C /tmp/hypc-js fetch --depth 1 origin "$HYPC_JS_REF"
+          git -C /tmp/hypc-js checkout --detach FETCH_HEAD
+          npm --prefix /tmp/hypc-js ci
+          npm --prefix /tmp/hypc-js run build
+          /tmp/hypc-js/dist/hypc.js --version
+
+      - name: Compile Hyperion sources
+        env:
+          HYPC: /tmp/hypc-js/dist/hypc.js
+        run: npm run compile
+
+      - name: Test address string helpers
+        env:
+          HYPC: /tmp/hypc-js/dist/hypc.js
+        run: npm test
+
+  # ===========================================================================
+  # Release: Semantic Release + npm Publish
+  # ===========================================================================
+  release:
+    name: Release
+    needs: preflight
+    runs-on: ubuntu-latest
+    if: github.repository == 'theQRL/qrl-contracts'
+    environment: npm-publish
+    permissions:
+      contents: write # push release commits and tags via semantic-release
+      issues: write # semantic-release opens issues for release failures
+      pull-requests: write # semantic-release comments on released PRs
+      id-token: write # npm trusted publishing OIDC token
+    outputs:
+      released: ${{ steps.check-release.outputs.released }}
+      version: ${{ steps.check-release.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The triggering commit, the same one preflight validated.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Assert the preflight commit
+        env:
+          PREFLIGHT_SHA: ${{ needs.preflight.outputs.sha }}
+        # Only the exact commit preflight validated is released. The local
+        # `main` that semantic-release commits to is created at that commit.
+        # If main has advanced since this run was triggered, semantic-release
+        # sees a local branch behind the remote and publishes nothing; the run
+        # for the newer commit releases instead.
+        run: |
+          echo "preflight validated: ${PREFLIGHT_SHA}"
+          echo "releasing HEAD:      $(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "${PREFLIGHT_SHA}"
+          git switch -C main
+
+      - name: Setup Node.js
+        # Pinned to 22.14.0: its bundled npm can cleanly self-update to
+        # npm 11 in the next step, and semantic-release@25 requires
+        # node ^22.14.0 || >=24.10.0.
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.14.0
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Use npm 11 for trusted publishing
+        # npm trusted publishing requires npm >= 11.5.1. The OIDC token from
+        # `id-token: write` is detected automatically; no NPM_TOKEN or
+        # NODE_AUTH_TOKEN is needed. The package's npm registry settings
+        # must list this workflow as a trusted publisher.
+        #
+        # Exact-pinned: a range here would resolve at run time inside the
+        # most privileged job in the repo. 11.21.2 matches the npm version
+        # pinned by package.json `overrides` and the lockfile; bump them
+        # together.
+        run: | # zizmor: ignore[adhoc-packages] -- exact-pinned trusted-publishing bootstrap; see pin rationale above.
+          npm install -g npm@11.21.2
+          npm --version
+
+      - name: Install dependencies
+        # `npm ci`, not `npm install`: the release toolchain must come from
+        # the reviewed lockfile, never resolved fresh in this job.
+        run: npm ci
+
+      - name: Get current version
+        id: version-before
+        run: |
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.BYPASS_SSH_KEY }}
+
+      - name: Configure Git for SSH
+        # known_hosts carries GitHub's published host keys (api.github.com/meta),
+        # not run-time `ssh-keyscan` trust-on-first-use: the tag push rides
+        # this channel with a branch-protection-bypass deploy key, so the
+        # endpoint must be authenticated. Refresh against the meta API when
+        # GitHub rotates its keys.
+        run: |
+          mkdir -p ~/.ssh
+          {
+            printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl'
+            printf '%s\n' 'github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg='
+            printf '%s\n' 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk='
+          } >> ~/.ssh/known_hosts
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          git remote set-url origin "git@github.com:${GITHUB_REPOSITORY}.git"
+
+      - name: Semantic Release (version, changelog, npm publish, GitHub release)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+          # npm publish runs inside semantic-release's publish phase
+          # (@semantic-release/exec publishCmd → scripts/release-publish.sh),
+          # before @semantic-release/github creates the GitHub release. A
+          # publish failure therefore aborts before a GitHub release exists.
+          #
+          # No NPM_TOKEN or NODE_AUTH_TOKEN: npm exchanges the GitHub Actions
+          # OIDC token with the registry, provided this workflow is a trusted
+          # publisher on the @theqrl/qrl-contracts package.
+          NPM_CONFIG_PROVENANCE: 'true'
+          NPM_CONFIG_ACCESS: public
+        # --no-install: run the lockfile-pinned semantic-release from
+        # devDependencies, never one fetched at release time.
+        run: npx --no-install semantic-release --repository-url "git@github.com:${GITHUB_REPOSITORY}.git"
+
+      - name: Check if release happened
+        id: check-release
+        env:
+          OLD_VERSION: ${{ steps.version-before.outputs.version }}
+        run: |
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Old version: $OLD_VERSION, New version: $NEW_VERSION"
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload published tarball (artifact handoff)
+        if: steps.check-release.outputs.released == 'true'
+        # scripts/release-publish.sh packs the tarball and publishes that
+        # exact file. The SBOM, attestation and SLSA jobs below consume this
+        # artifact, so they describe the published bytes.
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-tarball
+          path: .release/tarballs/*.tgz
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Verify release is live on npm
+        if: steps.check-release.outputs.released == 'true'
+        env:
+          VERSION: ${{ steps.check-release.outputs.version }}
+        # Confirm the registry serves the version before downstream jobs
+        # attach supply-chain artifacts. Recovery runbook: RELEASE.md
+        # "Recovering an orphaned release".
+        run: |
+          set -euo pipefail
+          ok=""
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            served="$(npm view "@theqrl/qrl-contracts@${VERSION}" version 2>/dev/null || true)"
+            if [ "${served}" = "${VERSION}" ]; then
+              echo "confirmed @theqrl/qrl-contracts@${VERSION} on attempt ${attempt}"
+              ok=1
+              break
+            fi
+            echo "not yet visible (attempt ${attempt}/10); retrying in 15s"
+            sleep 15
+          done
+          if [ -z "${ok}" ]; then
+            echo "::error::@theqrl/qrl-contracts@${VERSION} is not served by the registry after 10 attempts. Follow RELEASE.md 'Recovering an orphaned release'."
+            exit 1
+          fi
+
+      - name: Verify registry serves the handed-off bytes
+        if: steps.check-release.outputs.released == 'true'
+        env:
+          VERSION: ${{ steps.check-release.outputs.version }}
+        # The registry's advertised integrity must equal the sha-512 of the
+        # tarball handed to the attestation jobs.
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          set -- .release/tarballs/*.tgz
+          if [ "$#" -ne 1 ]; then
+            echo "::error::expected exactly one packed tarball, found $#"
+            exit 1
+          fi
+          tarball="$1"
+          local_integrity="sha512-$(openssl dgst -sha512 -binary "${tarball}" | base64 -w0)"
+          served_integrity="$(npm view "@theqrl/qrl-contracts@${VERSION}" dist.integrity)"
+          echo "local:  ${local_integrity}"
+          echo "served: ${served_integrity}"
+          if [ "${local_integrity}" != "${served_integrity}" ]; then
+            echo "::error::registry bytes do not match the published tarball handoff"
+            exit 1
+          fi
+
+  # ===========================================================================
+  # Supply Chain: SBOM, Checksums, GitHub Attestations
+  # ===========================================================================
+  supply-chain-artifacts:
+    name: Supply Chain Artifacts
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: write # upload SBOMs and checksums to GitHub Release
+      id-token: write # mint OIDC token for build provenance signing
+      attestations: write # create build-provenance attestations
+    steps:
+      # No checkout: every artifact below is derived from the published
+      # tarball handed off by the release job. A workspace checkout of
+      # `main` can advance past the released commit between jobs, and a
+      # signed SBOM of "whatever main was at publish time" can mis-describe
+      # the released bytes — weakening exactly the story it exists to tell.
+      - name: Download published tarball
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-tarball
+          path: tarball
+
+      - name: Extract tarball contents
+        run: |
+          set -euo pipefail
+          mkdir -p extracted
+          tar -xzf tarball/*.tgz -C extracted
+          ls -la extracted/package
+
+      - name: Generate checksums (published artifact)
+        run: |
+          set -euo pipefail
+          (cd tarball && sha256sum ./*.tgz) > checksums-sha256.txt
+          (cd tarball && sha512sum ./*.tgz) > checksums-sha512.txt
+          (cd extracted/package && find . -type f | LC_ALL=C sort | xargs sha256sum) > package-contents-sha256.txt
+
+      - name: Generate SBOM (SPDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: extracted/package
+          format: spdx-json
+          output-file: sbom-spdx.json
+          artifact-name: sbom-spdx.json
+
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: extracted/package
+          format: cyclonedx-json
+          output-file: sbom-cyclonedx.json
+          artifact-name: sbom-cyclonedx.json
+
+      - name: Attest published tarball and checksums
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            tarball/*.tgz
+            checksums-sha256.txt
+            checksums-sha512.txt
+            package-contents-sha256.txt
+
+      # attest-sbom subjects are the artifact each SBOM describes — the
+      # published tarball — not the SBOM document itself.
+      - name: Attest SBOM (SPDX)
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: tarball/*.tgz
+          sbom-path: sbom-spdx.json
+
+      - name: Attest SBOM (CycloneDX)
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: tarball/*.tgz
+          sbom-path: sbom-cyclonedx.json
+
+      - name: Upload release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          gh release upload "v${RELEASE_VERSION}" \
+            checksums-sha256.txt \
+            checksums-sha512.txt \
+            package-contents-sha256.txt \
+            sbom-spdx.json \
+            sbom-cyclonedx.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
+
+  # ===========================================================================
+  # SLSA Level 3 Provenance
+  # ===========================================================================
+  slsa-subjects:
+    name: Compute SLSA Subjects
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: read # artifact download only; nothing is checked out
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      # The provenance subject is the published tarball from the release
+      # job's handoff. A rebuild here (checkout of floating `main` +
+      # `npm pack`) could hash different bytes than npm serves — the
+      # provenance must describe the released artifact, not a reproduction.
+      - name: Download published tarball
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-tarball
+          path: tarball
+
+      - name: Generate subject hashes
+        id: hash
+        run: |
+          set -euo pipefail
+          cd tarball
+          echo "hashes=$(sha256sum ./*.tgz | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+  slsa-provenance:
+    name: SLSA Provenance
+    needs: [release, slsa-subjects]
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      actions: read # SLSA generator inspects the run's workflow definition
+      id-token: write # SLSA provenance is signed via OIDC
+      contents: write # upload provenance to GitHub Release
+    # SLSA reusable workflow MUST be tag-pinned (not SHA-pinned) so the
+    # slsa-verifier can validate the generator's identity against the
+    # signed release tag. SHA-pinning here would break SLSA Level 3
+    # provenance verification. Zizmor `unpinned-uses` exception:
+    # see .github/zizmor.yml.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.slsa-subjects.outputs.hashes }}
+      upload-assets: false
+      provenance-name: provenance.intoto.jsonl
+
+  slsa-upload:
+    name: Upload SLSA Provenance
+    runs-on: ubuntu-latest
+    needs: [release, slsa-provenance]
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: write # attach SLSA provenance asset to the GitHub Release
+    steps:
+      - name: Download provenance
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: provenance.intoto.jsonl
+
+      - name: Download npm tarball
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-tarball
+          path: tarball
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release upload "v${RELEASE_VERSION}" \
+            provenance.intoto.jsonl \
+            tarball/*.tgz \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber

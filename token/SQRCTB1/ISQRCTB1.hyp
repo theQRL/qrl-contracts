@@ -6,8 +6,8 @@ pragma hyperion >=0.0;
 import {IZRC165} from "../../utils/introspection/IZRC165.hyp";
 
 /**
- * @dev Required interface of an SQRC-TB1 compliant contract, as defined in the
- * https://eips.ethereum.org/EIPS/eip-1155[ZRC].
+ * @dev Required interface of an SQRC-TB1 compliant contract. SQRC-TB1 is the QRL counterpart of
+ * https://eips.ethereum.org/EIPS/eip-1155[EIP-1155].
  */
 interface ISQRCTB1 is IZRC165 {
     /**
@@ -48,7 +48,7 @@ interface ISQRCTB1 is IZRC165 {
     function balanceOf(address account, uint256 id) external view returns (uint256);
 
     /**
-     * @dev xref:ROOT:zrc1155.adoc#batch-operations[Batched] version of {balanceOf}.
+     * @dev Batched version of {balanceOf}.
      *
      * Requirements:
      *
@@ -98,7 +98,7 @@ interface ISQRCTB1 is IZRC165 {
     function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes calldata data) external;
 
     /**
-     * @dev xref:ROOT:zrc1155.adoc#batch-operations[Batched] version of {safeTransferFrom}.
+     * @dev Batched version of {safeTransferFrom}.
      *
      * WARNING: This function can potentially allow a reentrancy attack when transferring tokens
      * to an untrusted contract, when invoking {ISQRCTB1Receiver-onSQRCTB1BatchReceived} on the receiver.

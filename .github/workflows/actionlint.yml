@@ -1,0 +1,70 @@
+name: Lint GitHub Actions
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '.github/zizmor.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '.github/zizmor.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: Lint workflow files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run actionlint
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+        with:
+          # The action defaults to `version: latest`, which resolves the
+          # actionlint binary at run time — pin the engine like the action
+          # itself. Keep in step with the brew-installed version used
+          # locally (CONTRIBUTING.md "Pinned verification inputs").
+          version: '1.7.10'
+
+  zizmor:
+    name: zizmor (Actions security analysis)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout repository
+      security-events: write # upload SARIF to GitHub Advanced Security
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          # v0.8.0 defaults to latest; keep the executed engine pinned.
+          version: '1.31.1'
+          persona: pedantic
+          config: .github/zizmor.yml
+
+      # SARIF reports findings without failing; enforce the gate separately
+      # after the upload so findings remain visible in the security tab.
+      - name: Fail on zizmor findings
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          version: '1.31.1'
+          persona: pedantic
+          config: .github/zizmor.yml
+          advanced-security: false

@@ -1,0 +1,113 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {ISQRCTB1Receiver} from "../../token/SQRCTB1/ISQRCTB1Receiver.hyp";
+import {SQRCTB1} from "../../token/SQRCTB1/SQRCTB1.hyp";
+import {ISQRCTN1Receiver} from "../../token/SQRCTN1/ISQRCTN1Receiver.hyp";
+import {SQRCTN1} from "../../token/SQRCTN1/SQRCTN1.hyp";
+
+error Rejected(uint256 code, address from, string note);
+
+string constant NOTE = "a rejection note that is longer than a single sixty-four byte word of revert data";
+
+contract MultiToken is SQRCTB1 {
+    constructor() SQRCTB1("https://example.invalid/{id}") {}
+
+    function mint(address to, uint256 id, uint256 value, bytes memory data) external {
+        _mint(to, id, value, data);
+    }
+
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data) external {
+        _mintBatch(to, ids, values, data);
+    }
+
+    function burn(address from, uint256 id, uint256 value) external {
+        _burn(from, id, value);
+    }
+
+    function burnBatch(address from, uint256[] memory ids, uint256[] memory values) external {
+        _burnBatch(from, ids, values);
+    }
+}
+
+// Allocates around the balance update, after the token has built its single-element arrays.
+contract AllocatingMultiToken is MultiToken {
+    bytes32 public bufferBefore;
+    bytes32 public bufferAfter;
+
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal virtual override {
+        bytes memory buffer = new bytes(200);
+        for (uint256 i = 0; i < buffer.length; ++i) buffer[i] = bytes1(uint8(i + 1));
+        bufferBefore = keccak256(buffer);
+
+        super._update(from, to, ids, values);
+
+        bufferAfter = keccak256(buffer);
+    }
+}
+
+contract Collectible is SQRCTN1 {
+    constructor() SQRCTN1("Collectible", "CLT") {}
+
+    function safeMint(address to, uint256 tokenId, bytes memory data) external {
+        _safeMint(to, tokenId, data);
+    }
+}
+
+contract CollectibleWithBaseURI is Collectible {
+    function _baseURI() internal pure override returns (string memory) {
+        return "https://example.invalid/token/";
+    }
+}
+
+contract AcceptingReceiver {
+    function onSQRCTB1Received(address, address, uint256, uint256, bytes calldata) external pure returns (bytes4) {
+        return ISQRCTB1Receiver.onSQRCTB1Received.selector;
+    }
+
+    function onSQRCTB1BatchReceived(
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        return ISQRCTB1Receiver.onSQRCTB1BatchReceived.selector;
+    }
+
+    function onSQRCTN1Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        return ISQRCTN1Receiver.onSQRCTN1Received.selector;
+    }
+}
+
+contract RejectingReceiver {
+    function onSQRCTB1Received(address, address from, uint256 id, uint256, bytes calldata) external pure returns (bytes4) {
+        revert Rejected(id, from, NOTE);
+    }
+
+    function onSQRCTB1BatchReceived(
+        address,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        revert Rejected(ids.length, from, NOTE);
+    }
+
+    function onSQRCTN1Received(address, address from, uint256 tokenId, bytes calldata) external pure returns (bytes4) {
+        revert Rejected(tokenId, from, NOTE);
+    }
+}
+
+contract SilentReceiver {
+    fallback() external {
+        revert();
+    }
+}

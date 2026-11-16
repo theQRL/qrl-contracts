@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {Panic} from "../../utils/Panic.hyp";
+
+contract PanicTest {
+    function libraryPanic(uint256 code) external pure {
+        Panic.panic(code);
+    }
+
+    function divide(uint256 a, uint256 b) external pure returns (uint256) {
+        return a / b;
+    }
+
+    function index(uint256[] memory array, uint256 i) external pure returns (uint256) {
+        return array[i];
+    }
+
+    function testDivisionByZeroMatchesCompilerPanic() external view {
+        bytes memory fromLibrary;
+        bytes memory fromCompiler;
+        try this.libraryPanic(Panic.DIVISION_BY_ZERO) {} catch (bytes memory data) {
+            fromLibrary = data;
+        }
+        try this.divide(1, 0) {} catch (bytes memory data) {
+            fromCompiler = data;
+        }
+        require(fromLibrary.length == 68);
+        require(keccak256(fromLibrary) == keccak256(fromCompiler));
+    }
+
+    function testArrayOutOfBoundsMatchesCompilerPanic() external view {
+        bytes memory fromLibrary;
+        bytes memory fromCompiler;
+        try this.libraryPanic(Panic.ARRAY_OUT_OF_BOUNDS) {} catch (bytes memory data) {
+            fromLibrary = data;
+        }
+        try this.index(new uint256[](1), 1) {} catch (bytes memory data) {
+            fromCompiler = data;
+        }
+        require(fromLibrary.length == 68);
+        require(keccak256(fromLibrary) == keccak256(fromCompiler));
+    }
+
+    function testPanicIsCaughtAsPanic() external view {
+        try this.libraryPanic(Panic.UNDER_OVERFLOW) {
+            revert();
+        } catch Panic(uint code) {
+            require(code == Panic.UNDER_OVERFLOW);
+        }
+    }
+}

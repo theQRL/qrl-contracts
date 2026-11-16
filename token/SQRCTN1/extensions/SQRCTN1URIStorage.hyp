@@ -15,8 +15,8 @@ import {IZRC165} from "../../../interfaces/IZRC165.hyp";
 abstract contract SQRCTN1URIStorage is IZRC4906, SQRCTN1 {
     using Strings for uint256;
 
-    // Interface ID as defined in ZRC-4906. This does not correspond to a traditional interface ID as ZRC-4906 only
-    // defines events and does not include any external function.
+    // Interface ID as defined in ZRC-4906, the QRL counterpart of EIP-4906. This does not correspond to a traditional
+    // interface ID as ZRC-4906 only defines events and does not include any external function.
     bytes4 private constant ZRC4906_INTERFACE_ID = bytes4(0x49064906);
 
     // Optional mapping for token URIs

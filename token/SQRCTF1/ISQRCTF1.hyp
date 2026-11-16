@@ -4,7 +4,7 @@
 pragma hyperion >=0.0;
 
 /**
- * @dev Interface of the SQRC-TF1 standard as defined in the ZRC.
+ * @dev Interface of the SQRC-TF1 standard, the QRL counterpart of https://eips.ethereum.org/EIPS/eip-20[EIP-20].
  */
 interface ISQRCTF1 {
     /**

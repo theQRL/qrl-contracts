@@ -4,7 +4,8 @@ pragma hyperion >=0.0;
 
 /**
  * @dev Standard SQRC-TF1 Errors
- * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ZRC-6093] custom errors for SQRC-TF1 tokens.
+ * Interface of the ZRC-6093 custom errors for SQRC-TF1 tokens. ZRC-6093 is the QRL counterpart of
+ * https://eips.ethereum.org/EIPS/eip-6093[EIP-6093].
  */
 interface ISQRCTF1Errors {
     /**
@@ -50,7 +51,8 @@ interface ISQRCTF1Errors {
 
 /**
  * @dev Standard SQRC-TN1 Errors
- * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ZRC-6093] custom errors for SQRC-TN1 tokens.
+ * Interface of the ZRC-6093 custom errors for SQRC-TN1 tokens. ZRC-6093 is the QRL counterpart of
+ * https://eips.ethereum.org/EIPS/eip-6093[EIP-6093].
  */
 interface ISQRCTN1Errors {
     /**
@@ -108,7 +110,8 @@ interface ISQRCTN1Errors {
 
 /**
  * @dev Standard SQRC-TB1 Errors
- * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ZRC-6093] custom errors for SQRC-TB1 tokens.
+ * Interface of the ZRC-6093 custom errors for SQRC-TB1 tokens. ZRC-6093 is the QRL counterpart of
+ * https://eips.ethereum.org/EIPS/eip-6093[EIP-6093].
  */
 interface ISQRCTB1Errors {
     /**

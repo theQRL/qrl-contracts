@@ -1,0 +1,166 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {ISQRCTB1} from "../../token/SQRCTB1/ISQRCTB1.hyp";
+import {ISQRCTB1Errors} from "../../interfaces/draft-IZRC6093.hyp";
+import {AcceptingReceiver, AllocatingMultiToken, MultiToken, RejectingReceiver, Rejected, SilentReceiver, NOTE} from "./TokenMocks.hyp";
+
+contract MultiTokenTest is AcceptingReceiver {
+    address private constant ALICE = address((uint512(0xa11ce) << 480) | 0xa11ce);
+
+    function _pair(uint256 a, uint256 b) private pure returns (uint256[] memory array) {
+        array = new uint256[](2);
+        array[0] = a;
+        array[1] = b;
+    }
+
+    function testEmitsTransferSingleOnMint() external returns (bytes32) {
+        MultiToken token = new MultiToken();
+        token.mint(ALICE, 7, 5, "");
+        require(token.balanceOf(ALICE, 7) == 5);
+        require(token.balanceOf(ALICE, 8) == 0);
+        return ISQRCTB1.TransferSingle.selector;
+    }
+
+    function testEmitsTransferBatchOnBatchMint() external returns (bytes32) {
+        MultiToken token = new MultiToken();
+        token.mintBatch(ALICE, _pair(1, 2), _pair(10, 20), "");
+        require(token.balanceOf(ALICE, 1) == 10 && token.balanceOf(ALICE, 2) == 20);
+        return ISQRCTB1.TransferBatch.selector;
+    }
+
+    function testSingleMintTransferAndBurn() external {
+        MultiToken token = new MultiToken();
+        AcceptingReceiver receiver = new AcceptingReceiver();
+
+        token.mint(address(this), 7, 5, "data");
+        require(token.balanceOf(address(this), 7) == 5);
+
+        token.safeTransferFrom(address(this), address(receiver), 7, 2, "");
+        require(token.balanceOf(address(this), 7) == 3);
+        require(token.balanceOf(address(receiver), 7) == 2);
+
+        token.burn(address(this), 7, 3);
+        require(token.balanceOf(address(this), 7) == 0);
+        require(token.balanceOf(address(receiver), 7) == 2);
+    }
+
+    function testSingleOperationsKeepLaterAllocationsIntact() external {
+        MultiToken token = new MultiToken();
+        bytes memory data = hex"0102030405";
+        token.mint(address(this), type(uint256).max, type(uint256).max, data);
+        require(keccak256(data) == keccak256(hex"0102030405"));
+        require(token.balanceOf(address(this), type(uint256).max) == type(uint256).max);
+    }
+
+    function testAllocationsDuringSingleUpdateDoNotOverlapTokenArrays() external {
+        AllocatingMultiToken token = new AllocatingMultiToken();
+        AcceptingReceiver receiver = new AcceptingReceiver();
+
+        token.mint(address(this), 7, 5, "data");
+        require(token.bufferBefore() != bytes32(0) && token.bufferAfter() == token.bufferBefore());
+        require(token.balanceOf(address(this), 7) == 5 && token.balanceOf(address(this), 0) == 0);
+
+        token.safeTransferFrom(address(this), address(receiver), 7, 2, "");
+        require(token.bufferAfter() == token.bufferBefore());
+        require(token.balanceOf(address(this), 7) == 3 && token.balanceOf(address(receiver), 7) == 2);
+
+        token.burn(address(this), 7, 3);
+        require(token.bufferAfter() == token.bufferBefore());
+        require(token.balanceOf(address(this), 7) == 0 && token.balanceOf(address(receiver), 7) == 2);
+    }
+
+    function testBatchMintTransferAndBurn() external {
+        MultiToken token = new MultiToken();
+        AcceptingReceiver receiver = new AcceptingReceiver();
+
+        token.mintBatch(address(this), _pair(1, 2), _pair(10, 20), "");
+        token.safeBatchTransferFrom(address(this), address(receiver), _pair(1, 2), _pair(4, 5), "");
+
+        address[] memory accounts = new address[](4);
+        accounts[0] = address(this);
+        accounts[1] = address(this);
+        accounts[2] = address(receiver);
+        accounts[3] = address(receiver);
+        uint256[] memory ids = new uint256[](4);
+        ids[0] = 1;
+        ids[1] = 2;
+        ids[2] = 1;
+        ids[3] = 2;
+        uint256[] memory balances = token.balanceOfBatch(accounts, ids);
+        require(balances.length == 4);
+        require(balances[0] == 6 && balances[1] == 15 && balances[2] == 4 && balances[3] == 5);
+
+        token.burnBatch(address(this), _pair(1, 2), _pair(6, 15));
+        require(token.balanceOf(address(this), 1) == 0 && token.balanceOf(address(this), 2) == 0);
+    }
+
+    function testInsufficientBalanceReverts() external {
+        MultiToken token = new MultiToken();
+        token.mint(address(this), 7, 5, "");
+        try token.burn(address(this), 7, 6) {
+            revert();
+        } catch (bytes memory data) {
+            bytes memory expected = abi.encodeWithSelector(
+                ISQRCTB1Errors.SQRCTB1InsufficientBalance.selector,
+                address(this),
+                uint256(5),
+                uint256(6),
+                uint256(7)
+            );
+            require(keccak256(data) == keccak256(expected));
+        }
+    }
+
+    function testSingleTransferForwardsReceiverRevertData() external {
+        MultiToken token = new MultiToken();
+        RejectingReceiver receiver = new RejectingReceiver();
+        bytes memory expected = abi.encodeWithSelector(Rejected.selector, uint256(7), address(0), NOTE);
+
+        bytes memory direct;
+        try receiver.onSQRCTB1Received(address(this), address(0), 7, 5, "") {} catch (bytes memory data) {
+            direct = data;
+        }
+        try token.mint(address(receiver), 7, 5, "") {
+            revert();
+        } catch (bytes memory data) {
+            require(data.length == expected.length);
+            require(keccak256(data) == keccak256(expected));
+            require(keccak256(data) == keccak256(direct));
+        }
+    }
+
+    function testBatchTransferForwardsReceiverRevertData() external {
+        MultiToken token = new MultiToken();
+        RejectingReceiver receiver = new RejectingReceiver();
+        bytes memory expected = abi.encodeWithSelector(Rejected.selector, uint256(2), address(0), NOTE);
+
+        try token.mintBatch(address(receiver), _pair(1, 2), _pair(10, 20), "") {
+            revert();
+        } catch (bytes memory data) {
+            require(data.length == expected.length);
+            require(keccak256(data) == keccak256(expected));
+        }
+    }
+
+    function testReceiverRevertingWithoutDataIsInvalidReceiver() external {
+        MultiToken token = new MultiToken();
+        SilentReceiver receiver = new SilentReceiver();
+        bytes memory expected = abi.encodeWithSelector(
+            ISQRCTB1Errors.SQRCTB1InvalidReceiver.selector,
+            address(receiver)
+        );
+
+        try token.mint(address(receiver), 7, 5, "") {
+            revert();
+        } catch (bytes memory data) {
+            require(keccak256(data) == keccak256(expected));
+        }
+        try token.mintBatch(address(receiver), _pair(1, 2), _pair(10, 20), "") {
+            revert();
+        } catch (bytes memory data) {
+            require(keccak256(data) == keccak256(expected));
+        }
+    }
+}

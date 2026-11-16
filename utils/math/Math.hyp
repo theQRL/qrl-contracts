@@ -23,9 +23,10 @@ library Math {
      * The result is stored in two 256 variables such that sum = high * 2²⁵⁶ + low.
      */
     function add512(uint256 a, uint256 b) internal pure returns (uint256 high, uint256 low) {
-        assembly ("memory-safe") {
-            low := add(a, b)
-            high := lt(low, a)
+        unchecked {
+            uint512 sum = uint512(a) + uint512(b);
+            high = uint256(sum >> 256);
+            low = uint256(sum);
         }
     }
 
@@ -35,13 +36,11 @@ library Math {
      * The result is stored in two 256 variables such that product = high * 2²⁵⁶ + low.
      */
     function mul512(uint256 a, uint256 b) internal pure returns (uint256 high, uint256 low) {
-        // 512-bit multiply [high low] = x * y. Compute the product mod 2²⁵⁶ and mod 2²⁵⁶ - 1, then use
-        // the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
-        // variables such that product = high * 2²⁵⁶ + low.
-        assembly ("memory-safe") {
-            let mm := mulmod(a, b, not(0))
-            low := mul(a, b)
-            high := sub(sub(mm, low), lt(mm, low))
+        unchecked {
+            // The product of two 256-bit values always fits in one 512-bit word.
+            uint512 product = uint512(a) * uint512(b);
+            high = uint256(product >> 256);
+            low = uint256(product);
         }
     }
 
@@ -72,14 +71,10 @@ library Math {
      */
     function tryMul(uint256 a, uint256 b) internal pure returns (bool success, uint256 result) {
         unchecked {
-            uint256 c = a * b;
-            assembly ("memory-safe") {
-                // Only true when the multiplication doesn't overflow
-                // (c / a == b) || (a == 0)
-                success := or(eq(div(c, a), b), iszero(a))
-            }
+            uint512 c = uint512(a) * uint512(b);
+            success = c <= type(uint256).max;
             // equivalent to: success ? c : 0
-            result = c * SafeCast.toUint(success);
+            result = uint256(c) * SafeCast.toUint(success);
         }
     }
 
@@ -197,80 +192,21 @@ library Math {
     /**
      * @dev Calculates floor(x * y / denominator) with full precision. Throws if result overflows a uint256 or
      * denominator == 0.
-     *
-     * Original credit to Remco Bloemen under MIT license (https://xn--2-umb.com/21/muldiv) with further edits by
-     * Uniswap Labs also under MIT license.
      */
     function mulDiv(uint256 x, uint256 y, uint256 denominator) internal pure returns (uint256 result) {
         unchecked {
-            (uint256 high, uint256 low) = mul512(x, y);
-
-            // Handle non-overflow cases, 256 by 256 division.
-            if (high == 0) {
-                // Hyperion will revert if denominator == 0, unlike the div opcode on its own.
-                // The surrounding unchecked block does not change this fact.
-                // See https://docs.hyperionlang.org/en/latest/control-structures.html#checked-or-unchecked-arithmetic.
-                return low / denominator;
+            if (denominator == 0) {
+                Panic.panic(Panic.DIVISION_BY_ZERO);
             }
 
-            // Make sure the result is less than 2²⁵⁶. Also prevents denominator == 0.
-            if (denominator <= high) {
-                Panic.panic(ternary(denominator == 0, Panic.DIVISION_BY_ZERO, Panic.UNDER_OVERFLOW));
+            // The 512-bit product fits in one word, so the division is exact without further reduction.
+            uint512 quotient = (uint512(x) * uint512(y)) / denominator;
+
+            // Make sure the result is less than 2²⁵⁶.
+            if (quotient > type(uint256).max) {
+                Panic.panic(Panic.UNDER_OVERFLOW);
             }
-
-            ///////////////////////////////////////////////
-            // 512 by 256 division.
-            ///////////////////////////////////////////////
-
-            // Make division exact by subtracting the remainder from [high low].
-            uint256 remainder;
-            assembly ("memory-safe") {
-                // Compute remainder using mulmod.
-                remainder := mulmod(x, y, denominator)
-
-                // Subtract 256 bit number from 512 bit number.
-                high := sub(high, gt(remainder, low))
-                low := sub(low, remainder)
-            }
-
-            // Factor powers of two out of denominator and compute largest power of two divisor of denominator.
-            // Always >= 1. See https://cs.stackexchange.com/q/138556/92363.
-
-            uint256 twos = denominator & (0 - denominator);
-            assembly ("memory-safe") {
-                // Divide denominator by twos.
-                denominator := div(denominator, twos)
-
-                // Divide [high low] by twos.
-                low := div(low, twos)
-
-                // Flip twos such that it is 2²⁵⁶ / twos. If twos is zero, then it becomes one.
-                twos := add(div(sub(0, twos), twos), 1)
-            }
-
-            // Shift in bits from high into low.
-            low |= high * twos;
-
-            // Invert denominator mod 2²⁵⁶. Now that denominator is an odd number, it has an inverse modulo 2²⁵⁶ such
-            // that denominator * inv ≡ 1 mod 2²⁵⁶. Compute the inverse by starting with a seed that is correct for
-            // four bits. That is, denominator * inv ≡ 1 mod 2⁴.
-            uint256 inverse = (3 * denominator) ^ 2;
-
-            // Use the Newton-Raphson iteration to improve the precision. Thanks to Hensel's lifting lemma, this also
-            // works in modular arithmetic, doubling the correct bits in each step.
-            inverse *= 2 - denominator * inverse; // inverse mod 2⁸
-            inverse *= 2 - denominator * inverse; // inverse mod 2¹⁶
-            inverse *= 2 - denominator * inverse; // inverse mod 2³²
-            inverse *= 2 - denominator * inverse; // inverse mod 2⁶⁴
-            inverse *= 2 - denominator * inverse; // inverse mod 2¹²⁸
-            inverse *= 2 - denominator * inverse; // inverse mod 2²⁵⁶
-
-            // Because the division is now exact we can divide by multiplying with the modular inverse of denominator.
-            // This will give us the correct result modulo 2²⁵⁶. Since the preconditions guarantee that the outcome is
-            // less than 2²⁵⁶, this is the final result. We don't need to compute the high bits of the result and high
-            // is no longer required.
-            result = low * inverse;
-            return result;
+            return uint256(quotient);
         }
     }
 
@@ -287,7 +223,7 @@ library Math {
     function mulShr(uint256 x, uint256 y, uint8 n) internal pure returns (uint256 result) {
         unchecked {
             (uint256 high, uint256 low) = mul512(x, y);
-            if (high >= 1 << n) {
+            if (high >= uint256(1) << n) {
                 Panic.panic(Panic.UNDER_OVERFLOW);
             }
             return (high << (256 - n)) | (low >> n);
@@ -298,7 +234,7 @@ library Math {
      * @dev Calculates x * y >> n with full precision, following the selected rounding direction.
      */
     function mulShr(uint256 x, uint256 y, uint8 n, Rounding rounding) internal pure returns (uint256) {
-        return mulShr(x, y, n) + SafeCast.toUint(unsignedRoundsUp(rounding) && mulmod(x, y, 1 << n) > 0);
+        return mulShr(x, y, n) + SafeCast.toUint(unsignedRoundsUp(rounding) && mulmod(x, y, uint256(1) << n) > 0);
     }
 
     /**
@@ -409,25 +345,30 @@ library Math {
     function tryModExp(uint256 b, uint256 e, uint256 m) internal view returns (bool success, uint256 result) {
         if (m == 0) return (false, 0);
         assembly ("memory-safe") {
-            let ptr := mload(0x40)
-            // | Offset    | Content    | Content (Hex)                                                      |
-            // |-----------|------------|--------------------------------------------------------------------|
-            // | 0x00:0x1f | size of b  | 0x0000000000000000000000000000000000000000000000000000000000000020 |
-            // | 0x20:0x3f | size of e  | 0x0000000000000000000000000000000000000000000000000000000000000020 |
-            // | 0x40:0x5f | size of m  | 0x0000000000000000000000000000000000000000000000000000000000000020 |
-            // | 0x60:0x7f | value of b | 0x<.............................................................b> |
-            // | 0x80:0x9f | value of e | 0x<.............................................................e> |
-            // | 0xa0:0xbf | value of m | 0x<.............................................................m> |
-            mstore(ptr, 0x20)
-            mstore(add(ptr, 0x20), 0x20)
-            mstore(add(ptr, 0x40), 0x20)
+            let ptr := mload(0x80)
+            // The precompile takes three 32-byte lengths followed by the operands, each passed here as a full
+            // 64-byte word.
+            //
+            // | Offset      | Content    |
+            // |-------------|------------|
+            // | 0x00:0x1f   | size of b  |
+            // | 0x20:0x3f   | size of e  |
+            // | 0x40:0x5f   | size of m  |
+            // | 0x60:0x9f   | value of b |
+            // | 0xa0:0xdf   | value of e |
+            // | 0xe0:0x11f  | value of m |
+            //
+            // Each store writes a 64-byte word, so a length is shifted into the upper half of its word and the
+            // lower half is overwritten by the store that follows.
+            mstore(ptr, shl(256, 0x40))
+            mstore(add(ptr, 0x20), shl(256, 0x40))
+            mstore(add(ptr, 0x40), shl(256, 0x40))
             mstore(add(ptr, 0x60), b)
-            mstore(add(ptr, 0x80), e)
-            mstore(add(ptr, 0xa0), m)
+            mstore(add(ptr, 0xa0), e)
+            mstore(add(ptr, 0xe0), m)
 
-            // Given the result < m, it's guaranteed to fit in 32 bytes,
-            // so we can use the memory scratch space located at offset 0.
-            success := staticcall(gas(), 0x05, ptr, 0xc0, 0x00, 0x20)
+            // The result has the size of m, one word, so it fits in the scratch space at offset 0.
+            success := staticcall(gas(), 0x05, ptr, 0x120, 0x00, 0x40)
             result := mload(0x00)
         }
     }
@@ -459,14 +400,14 @@ library Math {
         result = abi.encodePacked(b.length, e.length, mLen, b, e, m);
 
         assembly ("memory-safe") {
-            let dataPtr := add(result, 0x20)
+            let dataPtr := add(result, 0x40)
             // Write result on top of args to avoid allocating extra memory.
             success := staticcall(gas(), 0x05, dataPtr, mload(result), dataPtr, mLen)
             // Overwrite the length.
             // result.length > returndatasize() is guaranteed because returndatasize() == m.length
             mstore(result, mLen)
             // Set the memory pointer after the returned data.
-            mstore(0x40, add(dataPtr, mLen))
+            mstore(0x80, add(dataPtr, mLen))
         }
     }
 
@@ -644,9 +585,10 @@ library Math {
         // |    1110    |   14    |        table[14] = 3        |
         // |    1111    |   15    |        table[15] = 3        |
         //
-        // The lookup table is represented as a 32-byte value with the MSB positions for 0-15 in the last 16 bytes.
+        // The lookup table is a 32-byte value with the MSB positions for 0-15 in its first 16 bytes. It sits in the
+        // lower half of the 64-byte word, so the index is offset by 32.
         assembly ("memory-safe") {
-            r := or(r, byte(shr(r, x), 0x0000010102020202030303030303030300000000000000000000000000000000))
+            r := or(r, byte(add(32, shr(r, x)), 0x0000010102020202030303030303030300000000000000000000000000000000))
         }
     }
 

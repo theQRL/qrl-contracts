@@ -1,0 +1,173 @@
+// SPDX-License-Identifier: MIT
+
+pragma hyperion >=0.0;
+
+import {Strings} from "../../utils/Strings.hyp";
+
+contract StringsTest {
+    using Strings for uint256;
+    using Strings for string;
+
+    uint256 private constant MAX = type(uint256).max;
+    string private constant MAX_DECIMAL =
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+    string private constant MIN_INT_DECIMAL =
+        "-57896044618658097711785492504343953926634992332820282019728792003956564819968";
+
+    function parseUint(string memory input) external pure returns (uint256) {
+        return Strings.parseUint(input);
+    }
+
+    function parseAddress(string memory input) external pure returns (address) {
+        return Strings.parseAddress(input);
+    }
+
+    function _same(string memory a, string memory b) private pure returns (bool) {
+        return bytes(a).length == bytes(b).length && keccak256(bytes(a)) == keccak256(bytes(b));
+    }
+
+    function testToString() external pure {
+        require(_same(Strings.toString(0), "0"));
+        require(_same(Strings.toString(7), "7"));
+        require(_same(Strings.toString(12345), "12345"));
+        require(_same(Strings.toString(MAX), MAX_DECIMAL));
+        require(bytes(Strings.toString(12345)).length == 5);
+    }
+
+    function testToStringLeavesNeighbouringMemoryIntact() external pure {
+        bytes memory before = hex"aabb";
+        string memory text = Strings.toString(9876543210);
+        bytes memory afterwards = hex"ccdd";
+        require(keccak256(before) == keccak256(hex"aabb"));
+        require(keccak256(afterwards) == keccak256(hex"ccdd"));
+        require(_same(text, "9876543210"));
+    }
+
+    function testToStringSigned() external pure {
+        require(_same(Strings.toStringSigned(-12345), "-12345"));
+        require(_same(Strings.toStringSigned(12345), "12345"));
+        require(_same(Strings.toStringSigned(type(int256).min), MIN_INT_DECIMAL));
+    }
+
+    function testToHexString() external pure {
+        require(_same(Strings.toHexString(uint256(0)), "0x00"));
+        require(_same(Strings.toHexString(uint256(0x1234)), "0x1234"));
+        require(_same(Strings.toHexString(uint256(0xabc), 4), "0x00000abc"));
+        require(bytes(Strings.toHexString(MAX)).length == 66);
+    }
+
+    function testParseUint() external pure {
+        require(Strings.parseUint("0") == 0);
+        require(Strings.parseUint("12345") == 12345);
+        require(Strings.parseUint("0012") == 12);
+        require(Strings.parseUint(MAX_DECIMAL) == MAX);
+        require(Strings.parseUint("xx42yy", 2, 4) == 42);
+
+        (bool success, uint256 value) = Strings.tryParseUint("12a45");
+        require(!success && value == 0);
+        (success, value) = Strings.tryParseUint("");
+        require(success && value == 0);
+        (success, value) = Strings.tryParseUint("123", 2, 5);
+        require(!success && value == 0);
+    }
+
+    function testParseUintRejectsInvalidCharacter() external view {
+        try this.parseUint("12 3") {
+            revert();
+        } catch (bytes memory data) {
+            require(bytes4(data) == Strings.StringsInvalidChar.selector);
+        }
+    }
+
+    function testToStringRoundTripsThroughParseUint() external pure {
+        uint256[5] memory values = [uint256(0), 9, 10, 12345, MAX];
+        for (uint256 i = 0; i < values.length; ++i) {
+            require(Strings.parseUint(Strings.toString(values[i])) == values[i]);
+        }
+    }
+
+    function testParseInt() external pure {
+        require(Strings.parseInt("-12345") == -12345);
+        require(Strings.parseInt("+12345") == 12345);
+        require(Strings.parseInt("12345") == 12345);
+        require(Strings.parseInt(MIN_INT_DECIMAL) == type(int256).min);
+        require(Strings.parseInt(Strings.toStringSigned(-42)) == -42);
+
+        (bool success, int256 value) = Strings.tryParseInt("-");
+        require(success && value == 0);
+        (success, value) = Strings.tryParseInt("--1");
+        require(!success && value == 0);
+        (success, value) = Strings.tryParseInt("57896044618658097711785492504343953926634992332820282019728792003956564819968");
+        require(!success && value == 0);
+    }
+
+    function testParseHexUint() external pure {
+        require(Strings.parseHexUint("0x1234") == 0x1234);
+        require(Strings.parseHexUint("1234") == 0x1234);
+        require(Strings.parseHexUint("aBcDeF") == 0xabcdef);
+        require(Strings.parseHexUint("0x") == 0);
+        require(Strings.parseHexUint("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") == MAX);
+        require(Strings.parseHexUint(Strings.toHexString(uint256(0xdeadbeef))) == 0xdeadbeef);
+
+        (bool success, uint256 value) = Strings.tryParseHexUint("0x12g4");
+        require(!success && value == 0);
+    }
+
+    function testAddressRoundTrips() external pure {
+        address account = address((uint512(0xfedcba9876543210) << 448) | 0x1234abcd);
+        string memory text = Strings.toHexString(account);
+        require(bytes(text).length == 129);
+        require(bytes(text)[0] == "Q");
+        require(Strings.parseAddress(text) == account);
+        require(Strings.parseAddress(Strings.toHexString(address(0))) == address(0));
+
+        string memory padded = string.concat("to:", text, ";");
+        require(Strings.parseAddress(padded, 3, 132) == account);
+
+        (bool success, address value) = Strings.tryParseAddress("Q1234");
+        require(!success && value == address(0));
+    }
+
+    function testParseAddressRejectsMissingPrefix() external view {
+        bytes memory text = bytes(Strings.toHexString(address(uint512(1))));
+        text[0] = "q";
+        try this.parseAddress(string(text)) {
+            revert();
+        } catch (bytes memory data) {
+            require(bytes4(data) == Strings.StringsInvalidAddressFormat.selector);
+        }
+    }
+
+    function testEqual() external pure {
+        require(Strings.equal("abc", "abc"));
+        require(!Strings.equal("abc", "abd"));
+        require(!Strings.equal("abc", "abcd"));
+    }
+
+    function testEscapeJSON() external pure {
+        require(_same(Strings.escapeJSON("plain"), "plain"));
+        require(_same(Strings.escapeJSON(""), ""));
+        require(_same(Strings.escapeJSON('say "hi"\n\tback\\slash'), 'say \\"hi\\"\\n\\tback\\\\slash'));
+        require(_same(Strings.escapeJSON(string(hex"080c0d")), "\\b\\f\\r"));
+    }
+
+    function testEscapeJSONLeavesMemoryUsable() external pure {
+        string memory long = "a value that is longer than one sixty-four byte word so the output spans more than one \"word\"";
+        string memory escaped = Strings.escapeJSON(long);
+        bytes memory next = new bytes(200);
+        for (uint256 i = 0; i < next.length; ++i) next[i] = 0xee;
+        require(bytes(escaped).length == bytes(long).length + 2);
+        require(
+            _same(
+                escaped,
+                'a value that is longer than one sixty-four byte word so the output spans more than one \\"word\\"'
+            )
+        );
+        require(next.length == 200 && next[0] == 0xee && next[199] == 0xee);
+
+        string memory short = Strings.escapeJSON("x");
+        bytes memory following = new bytes(64);
+        following[0] = 0x11;
+        require(_same(short, "x") && following[0] == 0x11 && following.length == 64);
+    }
+}

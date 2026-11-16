@@ -13,7 +13,7 @@ import {ISQRCTB1Errors} from "../../interfaces/draft-IZRC6093.hyp";
 
 /**
  * @dev Implementation of the basic standard multi-token.
- * See https://eips.ethereum.org/EIPS/eip-1155
+ * SQRC-TB1 is the QRL counterpart of https://eips.ethereum.org/EIPS/eip-1155[EIP-1155].
  * Originally based on code by Enjin: https://github.com/enjin/erc-1155
  */
 abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQRCTB1Errors {
@@ -47,7 +47,7 @@ abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQ
      *
      * This implementation returns the same URI for *all* token types. It relies
      * on the token type ID substitution mechanism
-     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the ZRC].
+     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in EIP-1155].
      *
      * Clients calling this function must replace the `\{id\}` substring with the
      * actual token type ID.
@@ -222,7 +222,7 @@ abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQ
     }
 
     /**
-     * @dev xref:ROOT:zrc1155.adoc#batch-operations[Batched] version of {_safeTransferFrom}.
+     * @dev Batched version of {_safeTransferFrom}.
      *
      * Emits a {TransferBatch} event.
      *
@@ -251,7 +251,7 @@ abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQ
     /**
      * @dev Sets a new URI for all token types, by relying on the token type ID
      * substitution mechanism
-     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the ZRC].
+     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in EIP-1155].
      *
      * By this mechanism, any occurrence of the `\{id\}` substring in either the
      * URI or any of the values in the JSON file at said URI will be replaced by
@@ -291,7 +291,7 @@ abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQ
     }
 
     /**
-     * @dev xref:ROOT:zrc1155.adoc#batch-operations[Batched] version of {_mint}.
+     * @dev Batched version of {_mint}.
      *
      * Emits a {TransferBatch} event.
      *
@@ -328,7 +328,7 @@ abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQ
     }
 
     /**
-     * @dev xref:ROOT:zrc1155.adoc#batch-operations[Batched] version of {_burn}.
+     * @dev Batched version of {_burn}.
      *
      * Emits a {TransferBatch} event.
      *
@@ -371,19 +371,19 @@ abstract contract SQRCTB1 is Context, ZRC165, ISQRCTB1, ISQRCTB1MetadataURI, ISQ
     ) private pure returns (uint256[] memory array1, uint256[] memory array2) {
         assembly ("memory-safe") {
             // Load the free memory pointer
-            array1 := mload(0x40)
+            array1 := mload(0x80)
             // Set array length to 1
             mstore(array1, 1)
             // Store the single element at the next word after the length (where content starts)
-            mstore(add(array1, 0x20), element1)
+            mstore(add(array1, 0x40), element1)
 
             // Repeat for next array locating it right after the first array
-            array2 := add(array1, 0x40)
+            array2 := add(array1, 0x80)
             mstore(array2, 1)
-            mstore(add(array2, 0x20), element2)
+            mstore(add(array2, 0x40), element2)
 
             // Update the free memory pointer by pointing after the second array
-            mstore(0x40, add(array2, 0x40))
+            mstore(0x80, add(array2, 0x80))
         }
     }
 }

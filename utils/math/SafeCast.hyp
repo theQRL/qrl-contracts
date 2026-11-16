@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // QRL Contracts (last updated v0.1.0) (utils/math/SafeCast.hyp)
-// This file was procedurally generated from scripts/generate/templates/SafeCast.js.
+// Ported from OpenZeppelin Contracts, where it is generated from scripts/generate/templates/SafeCast.js.
+// Maintained by hand here.
 
 pragma hyperion >=0.0;
 
