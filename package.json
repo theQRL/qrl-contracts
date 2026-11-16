@@ -4,13 +4,20 @@
   "version": "0.1.0",
   "scripts": {
     "compile": "sh scripts/compile-hyperion.sh",
-    "test": "node scripts/test-strings-address.js"
+    "test": "node scripts/test-strings-address.js",
+    "test:vm": "node scripts/test-vm.js",
+    "test:hyptest": "node scripts/test-hyptest.js"
   },
   "files": [
     "**/*.hyp",
     "/build/contracts/*.json",
+    "LICENSE",
+    "MIGRATION-*.md",
     "scripts/compile-hyperion.sh",
     "scripts/test-strings-address.js",
+    "scripts/test-hyptest.js",
+    "scripts/test-vm.js",
+    "scripts/vm-runner/main.go",
     "test/**/*.hyp",
     "!/mocks/**/*"
   ],
@@ -29,5 +36,15 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/theQRL/qrl-contracts/issues"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "7.0.0",
+    "@semantic-release/exec": "7.1.0",
+    "@semantic-release/git": "11.0.1",
+    "conventional-changelog-conventionalcommits": "9.3.1",
+    "semantic-release": "25.0.9"
+  },
+  "overrides": {
+    "npm": "11.21.2"
   }
 }

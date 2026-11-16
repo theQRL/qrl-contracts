@@ -6,18 +6,28 @@ on:
     branches:
       - main
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   hypc:
     name: hypc
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
-      HYPC_JS_REF: fdef38670119db396c558bd3bda87f64c4246fef
+      HYPC_JS_REF: f0a69fefe9a31d0538981733323cdab325ed00ea # v0.3.1
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 20
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
 
       - name: Build Hyperion compiler
         run: |
@@ -38,3 +48,55 @@ jobs:
         env:
           HYPC: /tmp/hypc-js/dist/hypc.js
         run: npm test
+
+  # Runs test/vm/*.t.hyp in go-qrl's VM (npm run test:vm).
+  #
+  # Disabled until go-qrl is release-ready. To activate: uncomment the job below and set GO_QRL_REF
+  # to the released go-qrl commit.
+  #
+  # vm-tests:
+  #   name: VM tests (go-qrl)
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #   env:
+  #     HYPC_JS_REF: f0a69fefe9a31d0538981733323cdab325ed00ea # v0.3.1
+  #     # Set to the released go-qrl commit.
+  #     GO_QRL_REF: main
+  #   steps:
+  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  #       with:
+  #         persist-credentials: false
+  #
+  #     - name: Check out go-qrl
+  #       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  #       with:
+  #         repository: theQRL/go-qrl
+  #         ref: ${{ env.GO_QRL_REF }}
+  #         path: go-qrl
+  #         persist-credentials: false
+  #
+  #     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+  #       with:
+  #         node-version: 22
+  #
+  #     - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+  #       with:
+  #         go-version-file: go-qrl/go.mod
+  #         cache-dependency-path: go-qrl/go.sum
+  #
+  #     - name: Build Hyperion compiler
+  #       run: |
+  #         git init /tmp/hypc-js
+  #         git -C /tmp/hypc-js remote add origin https://github.com/theQRL/hypc-js.git
+  #         git -C /tmp/hypc-js fetch --depth 1 origin "$HYPC_JS_REF"
+  #         git -C /tmp/hypc-js checkout --detach FETCH_HEAD
+  #         npm --prefix /tmp/hypc-js ci
+  #         npm --prefix /tmp/hypc-js run build
+  #         /tmp/hypc-js/dist/hypc.js --version
+  #
+  #     - name: Run VM tests on the legacy and IR pipelines
+  #       env:
+  #         HYPC: /tmp/hypc-js/dist/hypc.js
+  #         GO_QRL: ${{ github.workspace }}/go-qrl
+  #       run: npm run test:vm
