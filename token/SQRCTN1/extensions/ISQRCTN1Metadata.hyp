@@ -7,7 +7,7 @@ import {ISQRCTN1} from "../ISQRCTN1.hyp";
 
 /**
  * @title SQRC-TN1 Non-Fungible Token Standard, optional metadata extension
- * @dev See https://eips.ethereum.org/EIPS/eip-721
+ * @dev SQRC-TN1 is the QRL counterpart of https://eips.ethereum.org/EIPS/eip-721[EIP-721].
  */
 interface ISQRCTN1Metadata is ISQRCTN1 {
     /**

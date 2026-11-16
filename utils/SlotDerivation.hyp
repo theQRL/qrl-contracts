@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // QRL Contracts (last updated v0.1.0) (utils/SlotDerivation.hyp)
-// This file was procedurally generated from scripts/generate/templates/SlotDerivation.js.
+// Ported from OpenZeppelin Contracts, where it is generated from scripts/generate/templates/SlotDerivation.js.
+// Maintained by hand here.
 
 pragma hyperion >=0.0;
 
@@ -9,7 +10,7 @@ pragma hyperion >=0.0;
  * corresponding to standard patterns. The derivation method for array and mapping matches the storage layout used by
  * the hyperion language / compiler.
  *
- * See https://docs.hyperionlang.org/en/v0.8.20/internals/layout_in_storage.html#mappings-and-dynamic-arrays[Solidity docs for mappings and dynamic arrays.].
+ * See https://github.com/theQRL/hyperion/blob/main/docs/internals/layout_in_storage.rst#mappings-and-dynamic-arrays[Hyperion docs for mappings and dynamic arrays.].
  *
  * Example usage:
  * ```hyperion
@@ -19,7 +20,7 @@ pragma hyperion >=0.0;
  *     using SlotDerivation for bytes32;
  *
  *     // Declare a namespace
- *     string private constant _NAMESPACE = "<namespace>"; // eg. OpenZeppelin.Slot
+ *     string private constant _NAMESPACE = "<namespace>"; // eg. example.main
  *
  *     function setValueInNamespace(uint256 key, address newValue) internal {
  *         _NAMESPACE.zrc7201Slot().deriveMapping(key).getAddressSlot().value = newValue;
@@ -33,19 +34,20 @@ pragma hyperion >=0.0;
  *
  * TIP: Consider using this library along with {StorageSlot}.
  *
+ * NOTE: A storage key is 256 bits wide. A `bytes32` slot holds that key, so `bytes32(uint256(n))` is slot `n`.
+ *
  * NOTE: This library provides a way to manipulate storage locations in a non-standard way. Tooling for checking
  * upgrade safety will ignore the slots accessed through this library.
- *
- * _Available since v5.1._
  */
 library SlotDerivation {
     /**
-     * @dev Derive an ZRC-7201 slot from a string (namespace).
+     * @dev Derive a ZRC-7201 slot from a string (namespace). ZRC-7201 is the QRL counterpart of
+     * https://eips.ethereum.org/EIPS/eip-7201[EIP-7201].
      */
     function zrc7201Slot(string memory namespace) internal pure returns (bytes32 slot) {
         assembly ("memory-safe") {
-            mstore(0x00, sub(keccak256(add(namespace, 0x20), mload(namespace)), 1))
-            slot := and(keccak256(0x00, 0x20), not(0xff))
+            mstore(0x00, and(sub(keccak256(add(namespace, 0x40), mload(namespace)), 1), shr(256, not(0))))
+            slot := shl(256, and(keccak256(0x00, 0x40), not(0xff)))
         }
     }
 
@@ -63,8 +65,8 @@ library SlotDerivation {
      */
     function deriveArray(bytes32 slot) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
-            mstore(0x00, slot)
-            result := keccak256(0x00, 0x20)
+            mstore(0x00, shr(256, slot))
+            result := shl(256, keccak256(0x00, 0x40))
         }
     }
 
@@ -73,9 +75,9 @@ library SlotDerivation {
      */
     function deriveMapping(bytes32 slot, address key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
-            mstore(0x00, and(key, shr(96, not(0))))
-            mstore(0x20, slot)
-            result := keccak256(0x00, 0x40)
+            mstore(0x00, key)
+            mstore(0x40, shr(256, slot))
+            result := shl(256, keccak256(0x00, 0x80))
         }
     }
 
@@ -85,8 +87,8 @@ library SlotDerivation {
     function deriveMapping(bytes32 slot, bool key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
             mstore(0x00, iszero(iszero(key)))
-            mstore(0x20, slot)
-            result := keccak256(0x00, 0x40)
+            mstore(0x40, shr(256, slot))
+            result := shl(256, keccak256(0x00, 0x80))
         }
     }
 
@@ -95,9 +97,9 @@ library SlotDerivation {
      */
     function deriveMapping(bytes32 slot, bytes32 key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
-            mstore(0x00, key)
-            mstore(0x20, slot)
-            result := keccak256(0x00, 0x40)
+            mstore(0x00, and(key, shl(256, not(0))))
+            mstore(0x40, shr(256, slot))
+            result := shl(256, keccak256(0x00, 0x80))
         }
     }
 
@@ -106,9 +108,9 @@ library SlotDerivation {
      */
     function deriveMapping(bytes32 slot, uint256 key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
-            mstore(0x00, key)
-            mstore(0x20, slot)
-            result := keccak256(0x00, 0x40)
+            mstore(0x00, and(key, shr(256, not(0))))
+            mstore(0x40, shr(256, slot))
+            result := shl(256, keccak256(0x00, 0x80))
         }
     }
 
@@ -117,9 +119,9 @@ library SlotDerivation {
      */
     function deriveMapping(bytes32 slot, int256 key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
-            mstore(0x00, key)
-            mstore(0x20, slot)
-            result := keccak256(0x00, 0x40)
+            mstore(0x00, signextend(31, key))
+            mstore(0x40, shr(256, slot))
+            result := shl(256, keccak256(0x00, 0x80))
         }
     }
 
@@ -129,11 +131,11 @@ library SlotDerivation {
     function deriveMapping(bytes32 slot, string memory key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
             let length := mload(key)
-            let begin := add(key, 0x20)
+            let begin := add(key, 0x40)
             let end := add(begin, length)
             let cache := mload(end)
-            mstore(end, slot)
-            result := keccak256(begin, add(length, 0x20))
+            mstore(end, shr(256, slot))
+            result := shl(256, keccak256(begin, add(length, 0x40)))
             mstore(end, cache)
         }
     }
@@ -144,11 +146,11 @@ library SlotDerivation {
     function deriveMapping(bytes32 slot, bytes memory key) internal pure returns (bytes32 result) {
         assembly ("memory-safe") {
             let length := mload(key)
-            let begin := add(key, 0x20)
+            let begin := add(key, 0x40)
             let end := add(begin, length)
             let cache := mload(end)
-            mstore(end, slot)
-            result := keccak256(begin, add(length, 0x20))
+            mstore(end, shr(256, slot))
+            result := shl(256, keccak256(begin, add(length, 0x40)))
             mstore(end, cache)
         }
     }

@@ -7,8 +7,8 @@ import {ISQRCTN1} from "../ISQRCTN1.hyp";
 
 /**
  * @title SQRC-TN1 Token Standard, optional enumeration extension
- * @dev See https://eips.ethereum.org/EIPS/eip-721 (Enumerable extension, mirrored
- *      for the QRL token standard).
+ * @dev The Enumerable extension of https://eips.ethereum.org/EIPS/eip-721[EIP-721], mirrored
+ *      for the QRL token standard.
  */
 interface ISQRCTN1Enumerable is ISQRCTN1 {
     /**

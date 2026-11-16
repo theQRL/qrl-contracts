@@ -9,9 +9,7 @@ import {ISQRCTN1Errors} from "../../../interfaces/draft-IZRC6093.hyp";
 /**
  * @dev Library that provide common SQRC-TN1 utility functions.
  *
- * See https://eips.ethereum.org/EIPS/eip-721[SQRC-TN1].
- *
- * _Available since v5.1._
+ * SQRC-TN1 is the QRL counterpart of https://eips.ethereum.org/EIPS/eip-721[EIP-721].
  */
 library SQRCTN1Utils {
     /**
@@ -41,7 +39,7 @@ library SQRCTN1Utils {
                     revert ISQRCTN1Errors.SQRCTN1InvalidReceiver(to);
                 } else {
                     assembly ("memory-safe") {
-                        revert(add(32, reason), mload(reason))
+                        revert(add(0x40, reason), mload(reason))
                     }
                 }
             }

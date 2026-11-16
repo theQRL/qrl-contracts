@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // QRL Contracts (last updated v0.1.0) (utils/StorageSlot.hyp)
-// This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
+// Ported from OpenZeppelin Contracts, where it is generated from scripts/generate/templates/StorageSlot.js.
+// Maintained by hand here.
 
 pragma hyperion >=0.0;
 
@@ -12,7 +13,7 @@ pragma hyperion >=0.0;
  *
  * The functions in this library return Slot structs that contain a `value` member that can be used to read or write.
  *
- * Example usage to set ZRC-1967 implementation slot:
+ * Example usage to set the implementation slot of ZRC-1967, the QRL counterpart of EIP-1967:
  * ```hyperion
  * contract ZRC1967 {
  *     // Define the slot. Alternatively, use the SlotDerivation library to derive the slot.
@@ -65,7 +66,7 @@ library StorageSlot {
      */
     function getAddressSlot(bytes32 slot) internal pure returns (AddressSlot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 
@@ -74,7 +75,7 @@ library StorageSlot {
      */
     function getBooleanSlot(bytes32 slot) internal pure returns (BooleanSlot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 
@@ -83,7 +84,7 @@ library StorageSlot {
      */
     function getBytes32Slot(bytes32 slot) internal pure returns (Bytes32Slot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 
@@ -92,7 +93,7 @@ library StorageSlot {
      */
     function getUint256Slot(bytes32 slot) internal pure returns (Uint256Slot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 
@@ -101,7 +102,7 @@ library StorageSlot {
      */
     function getInt256Slot(bytes32 slot) internal pure returns (Int256Slot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 
@@ -110,7 +111,7 @@ library StorageSlot {
      */
     function getStringSlot(bytes32 slot) internal pure returns (StringSlot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 
@@ -128,7 +129,7 @@ library StorageSlot {
      */
     function getBytesSlot(bytes32 slot) internal pure returns (BytesSlot storage r) {
         assembly ("memory-safe") {
-            r.slot := slot
+            r.slot := shr(256, slot)
         }
     }
 

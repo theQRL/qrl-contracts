@@ -12,8 +12,8 @@ import {IZRC165, ZRC165} from "../../utils/introspection/ZRC165.hyp";
 import {ISQRCTN1Errors} from "../../interfaces/draft-IZRC6093.hyp";
 
 /**
- * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[SQRC-TN1] Non-Fungible Token Standard, including
- * the Metadata extension, but not including the Enumerable extension, which is available separately as
+ * @dev Implementation of the SQRC-TN1 Non-Fungible Token Standard, the QRL counterpart of
+ * https://eips.ethereum.org/EIPS/eip-721[EIP-721], including the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {SQRCTN1Enumerable}.
  */
 abstract contract SQRCTN1 is Context, ZRC165, ISQRCTN1, ISQRCTN1Metadata, ISQRCTN1Errors {
@@ -281,7 +281,7 @@ abstract contract SQRCTN1 is Context, ZRC165, ISQRCTN1, ISQRCTN1Metadata, ISQRCT
     }
 
     /**
-     * @dev Same as {xref-SQRCTN1-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
+     * @dev Same as {_safeMint}, with an additional `data` parameter which is
      * forwarded in {ISQRCTN1Receiver-onSQRCTN1Received} to contract recipients.
      */
     function _safeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
@@ -354,7 +354,7 @@ abstract contract SQRCTN1 is Context, ZRC165, ISQRCTN1, ISQRCTN1Metadata, ISQRCT
     }
 
     /**
-     * @dev Same as {xref-SQRCTN1-_safeTransfer-address-address-uint256-}[`_safeTransfer`], with an additional `data` parameter which is
+     * @dev Same as {_safeTransfer}, with an additional `data` parameter which is
      * forwarded in {ISQRCTN1Receiver-onSQRCTN1Received} to contract recipients.
      */
     function _safeTransfer(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
